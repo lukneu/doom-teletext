@@ -1,3 +1,14 @@
+================
+= FROSTED DOOM =
+================
+
+Port of original DOOM to Frosted operating system.
+Frosted does not yet have a framebuffer nor sound driver,
+so for the moment, it just compiles and links...
+
+
+Original readme
+===============
 
 Here it is, at long last.  The DOOM source code is released for your
 non-profit use.  You still need real DOOM data to work with this code.
