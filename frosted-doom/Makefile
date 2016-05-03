@@ -4,24 +4,40 @@
 #
 # $Log:$
 #
-CC=  gcc  # gcc or g++
+CROSS_COMPILE = arm-frosted-eabi-
+CC=  $(CROSS_COMPILE)gcc  # gcc or g++
 
-CFLAGS=-g -Wall -DNORMALUNIX -DLINUX # -DUSEASM 
-LDFLAGS=-L/usr/X11R6/lib
-LIBS=-lXext -lX11 -lnsl -lm
+
+CFLAGS+=-mthumb -mlittle-endian -mthumb-interwork -ffunction-sections -mcpu=cortex-m3
+CFLAGS+=-DCORE_M3 -D__frosted__
+# COMPILER FLAGS -- No gcc libraries
+CFLAGS+=-nostartfiles
+# COMPILER FLAGS -- GOT/PIC
+CFLAGS+=-fPIC -mlong-calls -fno-common -msingle-pic-base -mno-pic-data-is-text-relative -Wstack-usage=1024
+# Debugging
+CFLAGS+=-ggdb
+
+# LINKER FLAGS
+LDFLAGS+=-fPIC -mlong-calls -fno-common -Wl,-elf2flt -lgloss
+CFLAGS+=-g -Wall -DNORMALUNIX -DLINUX -DSNDSERV # -DUSEASM
+CFLAGS+=-Icompat
+#LDFLAGS=-L/usr/X11R6/lib
+#LIBS=-lXext -lX11 -lnsl -lm
+LIBS=-lm -lc
 
 # subdirectory for objects
-O=linux
+O=frosted
 
 # not too sophisticated dependency
 OBJS=				\
+		$(O)/stubs.o		\
 		$(O)/doomdef.o		\
 		$(O)/doomstat.o		\
 		$(O)/dstrings.o		\
 		$(O)/i_system.o		\
-		$(O)/i_sound.o		\
-		$(O)/i_video.o		\
-		$(O)/i_net.o			\
+		$(O)/i_sound_dummy.o          \
+		$(O)/i_video_dummy.o          \
+		$(O)/i_net.o                    \
 		$(O)/tables.o			\
 		$(O)/f_finale.o		\
 		$(O)/f_wipe.o 		\
@@ -77,19 +93,23 @@ OBJS=				\
 		$(O)/info.o				\
 		$(O)/sounds.o
 
-all:	 $(O)/linuxxdoom
+all:	 $(O)/fdoom
 
 clean:
 	rm -f *.o *~ *.flc
-	rm -f linux/*
+	rm -f frosted/*
 
-$(O)/linuxxdoom:	$(OBJS) $(O)/i_main.o
+$(O)/fdoom:	$(OBJS) $(O)/i_main.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_main.o \
-	-o $(O)/linuxxdoom $(LIBS)
+	-o $(O)/fdoom $(LIBS)
 
-$(O)/%.o:	%.c
+$(O):
+	mkdir -p $(O)
+
+$(O)/%.o:	%.c $(O)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 #############################################################
 #
 #############################################################
+

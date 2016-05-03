@@ -34,6 +34,7 @@ rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/ioctl.h>
+#include <fcntl.h>
 
 #include "i_system.h"
 #include "d_event.h"
@@ -326,7 +327,8 @@ void I_InitNetwork (void)
     // build message to receive
     insocket = UDPsocket ();
     BindToLocalPort (insocket,htons(DOOMPORT));
-    ioctl (insocket, FIONBIO, &trueval);
+    //XXX ioctl (insocket, FIONBIO, &trueval);
+    fcntl (insocket,F_SETFL, O_NONBLOCK);
 
     sendsocket = UDPsocket ();
 }

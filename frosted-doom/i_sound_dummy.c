@@ -42,9 +42,6 @@ rcsid[] = "$Id: i_unix.c,v 1.5 1997/02/03 22:45:10 b1 Exp $";
 #include <unistd.h>
 #include <sys/ioctl.h>
 
-// Linux voxware output.
-#include <linux/soundcard.h>
-
 // Timer stuff. Experimental.
 #include <time.h>
 #include <signal.h>
@@ -751,7 +748,7 @@ I_InitSound()
   if ( !access(buffer, X_OK) )
   {
     strcat(buffer, " -quiet");
-    sndserver = popen(buffer, "w");
+    sndserver = NULL; //popen(buffer, "w");
   }
   else
     fprintf(stderr, "Could not start sound server [%s]\n", buffer);
@@ -966,7 +963,7 @@ int I_SoundSetTimer( int duration_of_tick )
   value.it_value.tv_usec      = duration_of_tick;
 
   // Error is -1.
-  res = setitimer( itimer, &value, &ovalue );
+  res = -1; //setitimer( itimer, &value, &ovalue );
 
   // Debug.
   if ( res == -1 )
