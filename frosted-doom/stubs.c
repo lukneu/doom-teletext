@@ -10,8 +10,13 @@ in_addr_t inet_addr(const char *cp)
 }
 
 // XXX FIXME
-int usleep(useconds_t us)
-{
-    return 0;
-}
-
+//int usleep(useconds_t us)
+//{
+//    return 0;
+//}
+//
+//
+//struct hostent *gethostbyname(const char *name)
+//{
+//    return NULL;
+//}

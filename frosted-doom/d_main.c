@@ -577,7 +577,8 @@ void IdentifyVersion (void)
     char *doomwaddir;
     doomwaddir = getenv("DOOMWADDIR");
     if (!doomwaddir)
-	doomwaddir = ".";
+	doomwaddir = "/mnt";
+	//XXX doomwaddir = ".";
 
     // Commercial.
     doom2wad = malloc(strlen(doomwaddir)+1+9+1);
@@ -593,7 +594,8 @@ void IdentifyVersion (void)
     
     // Shareware.
     doom1wad = malloc(strlen(doomwaddir)+1+9+1);
-    sprintf(doom1wad, "%s/doom1.wad", doomwaddir);
+    //XXX sprintf(doom1wad, "%s/doom1.wad", doomwaddir);
+    sprintf(doom1wad, "%s/DOOM1.WAD", doomwaddir);
 
      // Bug, dear Shawn.
     // Insufficient malloc, caused spurious realloc errors.
@@ -608,7 +610,8 @@ void IdentifyVersion (void)
     doom2fwad = malloc(strlen(doomwaddir)+1+10+1);
     sprintf(doom2fwad, "%s/doom2f.wad", doomwaddir);
 
-    home = getenv("HOME");
+    //home = getenv("HOME");
+    home = "/mnt";
     if (!home)
       I_Error("Please set $HOME to your home directory");
     sprintf(basedefault, "%s/.doomrc", home);
@@ -802,7 +805,7 @@ void D_DoomMain (void)
 	
     IdentifyVersion ();
 	
-    setbuf (stdout, NULL);
+    //XXX setbuf (stdout, NULL);
     modifiedgame = false;
 	
     nomonsters = M_CheckParm ("-nomonsters");
