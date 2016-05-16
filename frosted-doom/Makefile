@@ -8,18 +8,18 @@ CROSS_COMPILE = arm-frosted-eabi-
 CC=  $(CROSS_COMPILE)gcc  # gcc or g++
 
 
-CFLAGS+=-mthumb -mlittle-endian -mthumb-interwork -ffunction-sections -mcpu=cortex-m3
+CFLAGS+=-mthumb -mlittle-endian -mthumb-interwork -ffunction-sections -fdata-sections -mcpu=cortex-m3
 CFLAGS+=-DCORE_M3 -D__frosted__
 # COMPILER FLAGS -- No gcc libraries
 CFLAGS+=-nostartfiles
 # COMPILER FLAGS -- GOT/PIC
 CFLAGS+=-fPIC -mlong-calls -fno-common -msingle-pic-base -mno-pic-data-is-text-relative -Wstack-usage=1024
 # Debugging
-CFLAGS+=-ggdb
+CFLAGS+=-ggdb3
 
 # LINKER FLAGS
-LDFLAGS+=-fPIC -mlong-calls -fno-common -Wl,-elf2flt -lgloss
-CFLAGS+=-g -Wall -DNORMALUNIX -DLINUX -DSNDSERV # -DUSEASM
+LDFLAGS+=-fPIC -mlong-calls -fno-common -Wl,-elf2flt -lgloss -Wl,--gc-sections
+CFLAGS+=-ggdb3 -Wall -DNORMALUNIX -DLINUX -DSNDSERV # -DUSEASM
 CFLAGS+=-Icompat
 #LDFLAGS=-L/usr/X11R6/lib
 #LIBS=-lXext -lX11 -lnsl -lm
@@ -101,7 +101,7 @@ clean:
 
 $(O)/fdoom:	$(OBJS) $(O)/i_main.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_main.o \
-	-o $(O)/fdoom $(LIBS)
+	-o $(O)/fdoom $(LIBS) -Wl,-Map,fdoom.map
 
 $(O):
 	mkdir -p $(O)
