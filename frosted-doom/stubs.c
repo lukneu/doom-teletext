@@ -6,7 +6,7 @@
 //XXX FIXME
 in_addr_t inet_addr(const char *cp)
 {
-    return NULL;
+    return (in_addr_t)NULL;
 }
 
 // XXX FIXME

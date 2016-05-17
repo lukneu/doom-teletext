@@ -7,6 +7,11 @@
 CROSS_COMPILE = arm-frosted-eabi-
 CC=  $(CROSS_COMPILE)gcc  # gcc or g++
 
+ifeq ($V,'1')
+	V=''
+else
+	V=@
+endif
 
 CFLAGS+=-mthumb -mlittle-endian -mthumb-interwork -ffunction-sections -fdata-sections -mcpu=cortex-m3
 CFLAGS+=-DCORE_M3 -D__frosted__
@@ -36,7 +41,7 @@ OBJS=				\
 		$(O)/dstrings.o		\
 		$(O)/i_system.o		\
 		$(O)/i_sound_dummy.o          \
-		$(O)/i_video_dummy.o          \
+		$(O)/i_video_fbdev.o          \
 		$(O)/i_net.o                    \
 		$(O)/tables.o			\
 		$(O)/f_finale.o		\
@@ -100,14 +105,16 @@ clean:
 	rm -f frosted/*
 
 $(O)/fdoom:	$(OBJS) $(O)/i_main.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_main.o \
+	@echo [Linking $@]
+	$V$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_main.o \
 	-o $(O)/fdoom $(LIBS) -Wl,-Map,fdoom.map
 
 $(O):
 	mkdir -p $(O)
 
 $(O)/%.o:	%.c $(O)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@echo [Compiling $<]
+	$V$(CC) $(CFLAGS) -c $< -o $@
 
 #############################################################
 #
