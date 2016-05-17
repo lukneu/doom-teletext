@@ -44,6 +44,7 @@ rcsid[] = "$Id: r_data.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
 #ifdef LINUX
 #include  <alloca.h>
 #endif
+#include  <stdlib.h>
 
 
 #include "r_data.h"
@@ -191,9 +192,9 @@ R_DrawColumnInCache
     int		count;
     int		position;
     byte*	source;
-    byte*	dest;
-	
-    dest = (byte *)cache + 3;
+    //byte*	dest;
+	//
+    //dest = (byte *)cache + 3;
 	
     while (patch->topdelta != 0xff)
     {
@@ -297,6 +298,7 @@ void R_GenerateLookup (int texnum)
 {
     texture_t*		texture;
     byte*		patchcount;	// patchcount[texture->width]
+    byte*		patchcount_alloc;
     texpatch_t*		patch;	
     patch_t*		realpatch;
     int			x;
@@ -321,6 +323,7 @@ void R_GenerateLookup (int texnum)
     //  with only a single patch are all done.
     //XXX patchcount = (byte *)alloca (texture->width);
     patchcount = (byte *)malloc (texture->width);
+    patchcount_alloc = patchcount;
     if (!patchcount)
         return;
     memset (patchcount, 0, texture->width);
@@ -375,7 +378,7 @@ void R_GenerateLookup (int texnum)
 	}
     }
 
-    free(patchcount);
+    free(patchcount_alloc);
 }
 
 
@@ -432,6 +435,7 @@ void R_InitTextures (void)
     char*		name_p;
     
     int*		patchlookup;
+    int*		patchlookup_alloc;
     
     int			totalwidth;
     int			nummappatches;
@@ -455,6 +459,7 @@ void R_InitTextures (void)
     name_p = names+4;
     //XXX patchlookup = alloca (nummappatches*sizeof(*patchlookup));
     patchlookup = malloc (nummappatches*sizeof(*patchlookup));
+    patchlookup_alloc = patchlookup;
     if (!patchlookup)
         return;
     
@@ -580,7 +585,7 @@ void R_InitTextures (void)
     for (i=0 ; i<numtextures ; i++)
 	texturetranslation[i] = i;
 
-    free(patchlookup);
+    free(patchlookup_alloc);
 }
 
 
@@ -753,8 +758,11 @@ int		spritememory;
 void R_PrecacheLevel (void)
 {
     char*		flatpresent;
+    char*		flatpresent_alloc;
     char*		texturepresent;
+    char*		texturepresent_alloc;
     char*		spritepresent;
+    char*		spritepresent_alloc;
 
     int			i;
     int			j;
@@ -771,6 +779,7 @@ void R_PrecacheLevel (void)
     // Precache flats.
     //XXX flatpresent = alloca(numflats);
     flatpresent = malloc(numflats);
+    flatpresent_alloc = flatpresent;
     if (!flatpresent)
         return;
     memset (flatpresent,0,numflats);	
@@ -793,11 +802,12 @@ void R_PrecacheLevel (void)
 	}
     }
 
-    free(flatpresent);
+    free(flatpresent_alloc);
     
     // Precache textures.
     //XXX texturepresent = alloca(numtextures);
     texturepresent = malloc(numtextures);
+    texturepresent_alloc = texturepresent;
     if (!texturepresent)
         return;
     memset (texturepresent,0, numtextures);
@@ -833,12 +843,13 @@ void R_PrecacheLevel (void)
 	}
     }
 
-    free(texturepresent);
+    free(texturepresent_alloc);
     
     // Precache sprites.
     //XXX spritepresent = alloca(numsprites);
     spritepresent = malloc(numsprites);
-    if (!numsprites)
+    spritepresent_alloc = spritepresent;
+    if (!spritepresent)
         return;
     memset (spritepresent,0, numsprites);
 	
@@ -866,7 +877,7 @@ void R_PrecacheLevel (void)
 	}
     }
 
-    free(numsprites);
+    free(spritepresent_alloc);
 }
 
 

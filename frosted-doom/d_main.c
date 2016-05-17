@@ -150,7 +150,7 @@ int 		eventtail;
 void D_PostEvent (event_t* ev)
 {
     events[eventhead] = *ev;
-    eventhead = (++eventhead)&(MAXEVENTS-1);
+    eventhead = (eventhead + 1) % MAXEVENTS;
 }
 
 
@@ -576,9 +576,11 @@ void IdentifyVersion (void)
     char *home;
     char *doomwaddir;
     doomwaddir = getenv("DOOMWADDIR");
+#ifdef __linux__
+	doomwaddir = ".";
+#endif
     if (!doomwaddir)
-	doomwaddir = "/mnt";
-	//XXX doomwaddir = ".";
+        doomwaddir = "/mnt";
 
     // Commercial.
     doom2wad = malloc(strlen(doomwaddir)+1+9+1);

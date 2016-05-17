@@ -72,7 +72,7 @@ typedef struct
 //
 typedef struct
 {
-    boolean	istexture;	// if false, it is a flat
+    int	    istexture;	// if false, it is a flat
     char	endname[9];
     char	startname[9];
     int		speed;
@@ -128,7 +128,7 @@ animdef_t		animdefs[] =
     {true,	"WFALL4",	"WFALL1",	8},
     {true,	"DBRAIN4",	"DBRAIN1",	8},
 	
-    {false, "\0", "\0", 0}
+    {-1,    "",         "",         0}
 };
 
 anim_t		anims[MAXANIMS];
@@ -149,11 +149,9 @@ void P_InitPicAnims (void)
 {
     int		i;
 
-    
     //	Init animation
     lastanim = anims;
-    //for (i=0 ; animdefs[i].istexture != -1 ; i++)
-    for (i=0 ; animdefs[i].startname[0] != NULL ; i++)
+    for (i=0 ; animdefs[i].istexture != -1 ; i++)
     {
 	if (animdefs[i].istexture)
 	{
@@ -1185,7 +1183,7 @@ int EV_DoDonut(line_t*	line)
 	s2 = getNextSector(s1->lines[0],s1);
 	for (i = 0;i < s2->linecount;i++)
 	{
-	    if ((!s2->lines[i]->flags & ML_TWOSIDED) ||
+	    if ((!(s2->lines[i]->flags & ML_TWOSIDED)) ||
 		(s2->lines[i]->backsector == s1))
 		continue;
 	    s3 = s2->lines[i]->backsector;
@@ -1241,11 +1239,11 @@ void P_SpawnSpecials (void)
 {
     sector_t*	sector;
     int		i;
-    int		episode;
+    //int		episode;
 
-    episode = 1;
+    //episode = 1;
     if (W_CheckNumForName("texture2") >= 0)
-	episode = 2;
+	//episode = 2;
 
     
     // See if -TIMER needs to be used.

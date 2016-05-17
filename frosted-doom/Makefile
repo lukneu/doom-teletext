@@ -4,44 +4,54 @@
 #
 # $Log:$
 #
-CROSS_COMPILE = arm-frosted-eabi-
-CC=  $(CROSS_COMPILE)gcc  # gcc or g++
 
-ifeq ($V,'1')
-	V=''
+ifeq ($(V),1)
+	VB=''
 else
-	V=@
+	VB=@
 endif
 
-CFLAGS+=-mthumb -mlittle-endian -mthumb-interwork -ffunction-sections -fdata-sections -mcpu=cortex-m3
-CFLAGS+=-DCORE_M3 -D__frosted__
-# COMPILER FLAGS -- No gcc libraries
-CFLAGS+=-nostartfiles
-# COMPILER FLAGS -- GOT/PIC
-CFLAGS+=-fPIC -mlong-calls -fno-common -msingle-pic-base -mno-pic-data-is-text-relative -Wstack-usage=1024
+ifeq ($(ARM),1)
+	CROSS_COMPILE = arm-frosted-eabi-
+	OBJS+=$(O)/i_video_fbdev.o
+	CFLAGS+=-mthumb -mlittle-endian -mthumb-interwork -ffunction-sections -fdata-sections -mcpu=cortex-m3
+	CFLAGS+=-DCORE_M3 -D__frosted__
+	# COMPILER FLAGS -- No gcc libraries
+	CFLAGS+=-nostartfiles
+	# COMPILER FLAGS -- GOT/PIC
+	CFLAGS+=-fPIC -mlong-calls -fno-common -msingle-pic-base -mno-pic-data-is-text-relative -Wstack-usage=1024
+	# LINKER FLAGS
+	LDFLAGS+=-fPIC -mlong-calls -fno-common -Wl,-elf2flt -lgloss
+else
+	CFLAGS+=-m32 -fsanitize=address -Wunused-const-variable=0 
+	LIBS+=-lXext -lX11 -lnsl -lm -lSDL2
+	OBJS+=$(O)/i_video_SDL.o
+endif
+
+CC=  $(CROSS_COMPILE)gcc  # gcc or g++
+
+
 # Debugging
 CFLAGS+=-ggdb3
-
-# LINKER FLAGS
-LDFLAGS+=-fPIC -mlong-calls -fno-common -Wl,-elf2flt -lgloss -Wl,--gc-sections
+LDFLAGS+=-Wl,--gc-sections
 CFLAGS+=-ggdb3 -Wall -DNORMALUNIX -DLINUX -DSNDSERV # -DUSEASM
 CFLAGS+=-Icompat
+LIBS+=-lm -lc
+
 #LDFLAGS=-L/usr/X11R6/lib
 #LIBS=-lXext -lX11 -lnsl -lm
-LIBS=-lm -lc
 
 # subdirectory for objects
 O=frosted
 
 # not too sophisticated dependency
-OBJS=				\
+OBJS+=				\
 		$(O)/stubs.o		\
 		$(O)/doomdef.o		\
 		$(O)/doomstat.o		\
 		$(O)/dstrings.o		\
 		$(O)/i_system.o		\
 		$(O)/i_sound_dummy.o          \
-		$(O)/i_video_fbdev.o          \
 		$(O)/i_net.o                    \
 		$(O)/tables.o			\
 		$(O)/f_finale.o		\
@@ -102,11 +112,12 @@ all:	 $(O)/fdoom
 
 clean:
 	rm -f *.o *~ *.flc
-	rm -f frosted/*
+	rm -f frosted/*.o
+	rm -f frosted/fdoom
 
 $(O)/fdoom:	$(OBJS) $(O)/i_main.o
 	@echo [Linking $@]
-	$V$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_main.o \
+	$(VB)$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_main.o \
 	-o $(O)/fdoom $(LIBS) -Wl,-Map,fdoom.map
 
 $(O):
@@ -114,7 +125,7 @@ $(O):
 
 $(O)/%.o:	%.c $(O)
 	@echo [Compiling $<]
-	$V$(CC) $(CFLAGS) -c $< -o $@
+	$(VB)$(CC) $(CFLAGS) -c $< -o $@
 
 #############################################################
 #

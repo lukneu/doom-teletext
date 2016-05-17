@@ -503,11 +503,11 @@ P_LookForPlayers
     int		c;
     int		stop;
     player_t*	player;
-    sector_t*	sector;
+    //sector_t*	sector;
     angle_t	an;
     fixed_t	dist;
 		
-    sector = actor->subsector->sector;
+    //sector = actor->subsector->sector;
 	
     c = 0;
     stop = (actor->lastlook-1)&3;
