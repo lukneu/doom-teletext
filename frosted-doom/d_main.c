@@ -167,7 +167,7 @@ void D_ProcessEvents (void)
 	 && (W_CheckNumForName("map01")<0) )
       return;
 	
-    for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) )
+    for ( ; eventtail != eventhead ; eventtail = (eventtail+1)%(MAXEVENTS) )
     {
 	ev = &events[eventtail];
 	if (M_Responder (ev))

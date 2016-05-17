@@ -147,12 +147,12 @@ void PacketGet (void)
     int			i;
     int			c;
     struct sockaddr_in	fromaddress;
-    unsigned int	fromlen;
+    int	fromlen;
     doomdata_t		sw;
 				
     fromlen = sizeof(fromaddress);
     c = recvfrom (insocket, &sw, sizeof(sw), 0
-		  , (struct sockaddr *)&fromaddress, &fromlen );
+		  , (struct sockaddr *)&fromaddress, (socklen_t *)&fromlen );
     if (c == -1 )
     {
 	if (errno != EWOULDBLOCK)
@@ -202,12 +202,11 @@ void PacketGet (void)
 }
 
 
-
 int GetLocalAddress (void)
 {
-    char		hostname[1024];
     struct hostent*	hostentry;	// host information entry
     int			v;
+    static char		hostname[512];
 
     // get local address
     v = gethostname (hostname, sizeof(hostname));

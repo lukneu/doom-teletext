@@ -147,7 +147,6 @@ void W_AddFile (char *filename)
     int			length;
     int			startlump;
     filelump_t*		fileinfo;
-    filelump_t*		fileinfo_alloc;
     filelump_t		singleinfo;
     int			storehandle;
     
@@ -199,7 +198,6 @@ void W_AddFile (char *filename)
 	length = header.numlumps*sizeof(filelump_t);
 	//XXX fileinfo = alloca (length);
 	fileinfo = malloc (length);
-	fileinfo_alloc = fileinfo;
 	lseek (handle, header.infotableofs, SEEK_SET);
 	read (handle, fileinfo, length);
 	numlumps += header.numlumps;
@@ -225,7 +223,7 @@ void W_AddFile (char *filename)
     }
 
     //XXX: Alloca replacement
-    free(fileinfo_alloc);
+    free(fileinfo);
 	
     if (reloadname)
 	close (handle);
@@ -248,7 +246,6 @@ void W_Reload (void)
     int			handle;
     int			length;
     filelump_t*		fileinfo;
-    filelump_t*		fileinfo_alloc;
 	
     if (!reloadname)
 	return;
@@ -262,7 +259,6 @@ void W_Reload (void)
     length = lumpcount*sizeof(filelump_t);
     //XXX fileinfo = alloca (length);
     fileinfo = malloc (length);
-    fileinfo_alloc = fileinfo;
     if (!fileinfo)
         return;
     lseek (handle, header.infotableofs, SEEK_SET);
@@ -282,7 +278,7 @@ void W_Reload (void)
 	lump_p->size = LONG(fileinfo->size);
     }
 
-    free(fileinfo_alloc);
+    free(fileinfo);
     close (handle);
 }
 
@@ -496,20 +492,16 @@ W_CacheLumpNum
 		
     if (!lumpcache[lump])
     {
-	  // read the lump in
-	  //printf ("cache miss on lump %i\n",lump);
-	  ptr = Z_Malloc (W_LumpLength (lump), tag, &lumpcache[lump]);
-      if (!ptr)
-        return NULL;
-	  W_ReadLump (lump, lumpcache[lump]);
+	// read the lump in
+	
+	//printf ("cache miss on lump %i\n",lump);
+	ptr = Z_Malloc (W_LumpLength (lump), tag, &lumpcache[lump]);
+	W_ReadLump (lump, lumpcache[lump]);
     }
     else
     {
-	  //printf ("cache hit on lump %i\n",lump);
-	  //Z_ChangeTag (lumpcache[lump],tag);
-        if (( (memblock_t *)( (byte *)(lumpcache[lump]) - sizeof(memblock_t)))->id!=0x1d4a11)
-            I_Error("Z_CT at "__FILE__":%i",__LINE__);
-        Z_ChangeTag2(lumpcache[lump],tag);
+	//printf ("cache hit on lump %i\n",lump);
+	Z_ChangeTag (lumpcache[lump],tag);
     }
 	
     return lumpcache[lump];

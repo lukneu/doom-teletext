@@ -5,6 +5,8 @@
 # $Log:$
 #
 
+ARM?=1
+
 ifeq ($(V),1)
 	VB=''
 else
