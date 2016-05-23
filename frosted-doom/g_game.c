@@ -2180,7 +2180,8 @@ void G_DoPlayDemo (void)
                                   "/info/patches.php\n"
                         "    This appears to be %s.";
 
-        I_Error(message, demoversion, G_VanillaVersionCode(),
+        //I_Error(message, demoversion, G_VanillaVersionCode(),
+        printf(message, demoversion, G_VanillaVersionCode(),
                          DemoVersionDescription(demoversion));
     }
     

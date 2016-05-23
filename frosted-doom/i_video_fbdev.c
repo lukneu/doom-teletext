@@ -47,6 +47,11 @@ rcsid[] = "$Id: i_x.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 
+
+#define FB_WIDTH        (480)
+#define FB_HEIGHT       (272)
+#define FB_BPP_RGB565    (16)
+
 struct color {
     uint32_t b:8;
     uint32_t g:8;
@@ -59,6 +64,7 @@ static struct color colors[256];
 // The screen buffer; this is modified to draw things to the screen
 
 byte *I_VideoBuffer = NULL;
+byte *I_VideoBuffer_FB = NULL;
 
 /* framebuffer file descriptor */
 int fd_fb = 0;
@@ -154,18 +160,16 @@ void I_InitGraphics (void)
     /* Allocate screen to draw to */
     //screen_pixels = malloc(X_width * X_height);
     //
-	I_VideoBuffer = (byte*)Z_Malloc (SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);
+	I_VideoBuffer = (byte*)Z_Malloc (SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);  // For DOOM to draw on
+	I_VideoBuffer_FB = (byte*)Z_Malloc (FB_WIDTH * FB_HEIGHT, PU_STATIC, NULL);     // For a single write() syscall to fbdev
 
 	screenvisible = true;
-
-    //screens[0] = (unsigned char *)screen_pixels;
-    //screens[0] = (unsigned char *)I_VideoBuffer;
-
 }
 
 void I_ShutdownGraphics (void)
 {
 	Z_Free (I_VideoBuffer);
+	Z_Free (I_VideoBuffer_FB);
 }
 
 void I_StartFrame (void)
@@ -355,49 +359,37 @@ void I_UpdateNoBlit (void)
 //
 // I_FinishUpdate
 //
-#define FB_WIDTH        (480)
-#define FB_HEIGHT       (272)
-#define FB_BPP_RGB565    (16)
 
 void I_FinishUpdate (void)
 {
-	//int x, y;
+#define CMAP256
     int y;
-    unsigned char *line_in;
-	//byte index;
+    int x_offset, y_offset, x_offset_end;
+    unsigned char *line_in, *line_out;
 
-	//lcd_vsync = false;
-
-	//for (y = 0; y < SCREENHEIGHT; y++)
-	//{
-	//	for (x = 0; x < SCREENWIDTH; x++)
-	//	{
-	//		index = I_VideoBuffer[y * SCREENWIDTH + x];
-
-	//		((uint16_t*)lcd_frame_buffer)[x * GFX_MAX_WIDTH + (GFX_MAX_WIDTH - y - 1)] = rgb565_palette[index];
-	//	}
-	//}
-
-	//lcd_refresh ();
-
-	//lcd_vsync = true;
-    //
-    //
-    
+    /* Offsets in case FB is bigger than DOOM */
+    y_offset     = (FB_HEIGHT - SCREENHEIGHT + 1) / 2;
+    x_offset     = (FB_WIDTH -  SCREENWIDTH  + 1) / 2;
+    x_offset_end = (FB_WIDTH -  SCREENWIDTH  - x_offset);
 
     /* DRAW SCREEN */
-    line_in = (unsigned char *) I_VideoBuffer;
-    lseek(fd_fb, 0, SEEK_SET);
-    y = SCREENHEIGHT;
+    line_in  = (unsigned char *) I_VideoBuffer;
+    line_out = (unsigned char *) I_VideoBuffer_FB;
 
-#define CMAP256
+    y = SCREENHEIGHT;
 
 #ifdef CMAP256
     while (y--)
     {
-        write(fd_fb, line_in, FB_WIDTH); /* FB_WIDTH is bigger then Doom SCREENWIDTH... */
+        line_out += x_offset;
+        memcpy(line_out, line_in, SCREENWIDTH); /* FB_WIDTH is bigger than Doom SCREENWIDTH... */
         line_in += SCREENWIDTH;
+        line_out += SCREENWIDTH + x_offset_end;
     }
+
+    /* Start drawing from y-offset */
+    lseek(fd_fb, y_offset * FB_WIDTH, SEEK_SET);
+    write(fd_fb, I_VideoBuffer_FB, SCREENHEIGHT * FB_WIDTH); /* draw only portion used by doom + x-offsets */
 #else
     while (y--)
     {
