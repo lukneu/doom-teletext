@@ -1,37 +1,34 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard, Andrey Budko
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Movement, collision handling.
 //	Shooting and aiming.
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: p_map.c,v 1.5 1997/02/03 22:45:11 b1 Exp $";
-
+#include <stdio.h>
 #include <stdlib.h>
+
+#include "deh_misc.h"
 
 #include "m_bbox.h"
 #include "m_random.h"
 #include "i_system.h"
 
 #include "doomdef.h"
+#include "m_argv.h"
+#include "m_misc.h"
 #include "p_local.h"
 
 #include "s_sound.h"
@@ -41,6 +38,26 @@ rcsid[] = "$Id: p_map.c,v 1.5 1997/02/03 22:45:11 b1 Exp $";
 #include "r_state.h"
 // Data.
 #include "sounds.h"
+
+// Spechit overrun magic value.
+//
+// This is the value used by PrBoom-plus.  I think the value below is 
+// actually better and works with more demos.  However, I think
+// it's better for the spechits emulation to be compatible with
+// PrBoom-plus, at least so that the big spechits emulation list
+// on Doomworld can also be used with Chocolate Doom.
+
+#define DEFAULT_SPECHIT_MAGIC 0x01C09C98
+
+// This is from a post by myk on the Doomworld forums, 
+// outputted from entryway's spechit_magic generator for
+// s205n546.lmp.  The _exact_ value of this isn't too
+// important; as long as it is in the right general
+// range, it will usually work.  Otherwise, we can use
+// the generator (hacked doom2.exe) and provide it 
+// with -spechit.
+
+//#define DEFAULT_SPECHIT_MAGIC 0x84f968e8
 
 
 fixed_t		tmbbox[4];
@@ -64,7 +81,6 @@ line_t*		ceilingline;
 
 // keep track of special lines as they are hit,
 // but don't process them until the move is proven valid
-#define MAXSPECIALCROSS		8
 
 line_t*		spechit[MAXSPECIALCROSS];
 int		numspechit;
@@ -181,6 +197,7 @@ P_TeleportMove
 // MOVEMENT ITERATOR FUNCTIONS
 //
 
+static void SpechitOverrun(line_t *ld);
 
 //
 // PIT_CheckLine
@@ -239,8 +256,14 @@ boolean PIT_CheckLine (line_t* ld)
     // if contacted a special line, add it to the list
     if (ld->special)
     {
-	spechit[numspechit] = ld;
+        spechit[numspechit] = ld;
 	numspechit++;
+
+        // fraggle: spechits overrun emulation code from prboom-plus
+        if (numspechit > MAXSPECIALCROSS_ORIGINAL)
+        {
+            SpechitOverrun(ld);
+        }
     }
 
     return true;
@@ -296,8 +319,8 @@ boolean PIT_CheckThing (mobj_t* thing)
 	if (tmthing->z+tmthing->height < thing->z)
 	    return true;		// underneath
 		
-	if (tmthing->target && (
-	    tmthing->target->type == thing->type || 
+	if (tmthing->target 
+         && (tmthing->target->type == thing->type || 
 	    (tmthing->target->type == MT_KNIGHT && thing->type == MT_BRUISER)||
 	    (tmthing->target->type == MT_BRUISER && thing->type == MT_KNIGHT) ) )
 	{
@@ -305,7 +328,11 @@ boolean PIT_CheckThing (mobj_t* thing)
 	    if (thing == tmthing->target)
 		return true;
 
-	    if (thing->type != MT_PLAYER)
+            // sdh: Add deh_species_infighting here.  We can override the
+            // "monsters of the same species cant hurt each other" behavior
+            // through dehacked patches
+
+	    if (thing->type != MT_PLAYER && !deh_species_infighting)
 	    {
 		// Explode, but do no damage.
 		// Let players missile other players.
@@ -839,14 +866,16 @@ PTR_AimTraverse (intercept_t* in)
 	
 	dist = FixedMul (attackrange, in->frac);
 
-	if (li->frontsector->floorheight != li->backsector->floorheight)
+        if (li->backsector == NULL
+         || li->frontsector->floorheight != li->backsector->floorheight)
 	{
 	    slope = FixedDiv (openbottom - shootz , dist);
 	    if (slope > bottomslope)
 		bottomslope = slope;
 	}
 		
-	if (li->frontsector->ceilingheight != li->backsector->ceilingheight)
+	if (li->backsector == NULL
+         || li->frontsector->ceilingheight != li->backsector->ceilingheight)
 	{
 	    slope = FixedDiv (opentop - shootz , dist);
 	    if (slope < topslope)
@@ -927,19 +956,35 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		
 	dist = FixedMul (attackrange, in->frac);
 
-	if (li->frontsector->floorheight != li->backsector->floorheight)
-	{
-	    slope = FixedDiv (openbottom - shootz , dist);
-	    if (slope > aimslope)
-		goto hitline;
-	}
-		
-	if (li->frontsector->ceilingheight != li->backsector->ceilingheight)
-	{
-	    slope = FixedDiv (opentop - shootz , dist);
-	    if (slope < aimslope)
-		goto hitline;
-	}
+        // e6y: emulation of missed back side on two-sided lines.
+        // backsector can be NULL when emulating missing back side.
+
+        if (li->backsector == NULL)
+        {
+            slope = FixedDiv (openbottom - shootz , dist);
+            if (slope > aimslope)
+                goto hitline;
+
+            slope = FixedDiv (opentop - shootz , dist);
+            if (slope < aimslope)
+                goto hitline;
+        }
+        else
+        {
+            if (li->frontsector->floorheight != li->backsector->floorheight)
+            {
+                slope = FixedDiv (openbottom - shootz , dist);
+                if (slope > aimslope)
+                    goto hitline;
+            }
+
+            if (li->frontsector->ceilingheight != li->backsector->ceilingheight)
+            {
+                slope = FixedDiv (opentop - shootz , dist);
+                if (slope < aimslope)
+                    goto hitline;
+            }
+        }
 
 	// shot continues
 	return true;
@@ -1027,6 +1072,8 @@ P_AimLineAttack
 {
     fixed_t	x2;
     fixed_t	y2;
+
+    t1 = P_SubstNullMobj(t1);
 	
     angle >>= ANGLETOFINESHIFT;
     shootthing = t1;
@@ -1335,5 +1382,67 @@ P_ChangeSector
 	
 	
     return nofit;
+}
+
+// Code to emulate the behavior of Vanilla Doom when encountering an overrun
+// of the spechit array.  This is by Andrey Budko (e6y) and comes from his
+// PrBoom plus port.  A big thanks to Andrey for this.
+
+static void SpechitOverrun(line_t *ld)
+{
+    static unsigned int baseaddr = 0;
+    unsigned int addr;
+   
+    if (baseaddr == 0)
+    {
+        int p;
+
+        // This is the first time we have had an overrun.  Work out
+        // what base address we are going to use.
+        // Allow a spechit value to be specified on the command line.
+
+        //!
+        // @category compat
+        // @arg <n>
+        //
+        // Use the specified magic value when emulating spechit overruns.
+        //
+
+        p = M_CheckParmWithArgs("-spechit", 1);
+        
+        if (p > 0)
+        {
+            M_StrToInt(myargv[p+1], (int *) &baseaddr);
+        }
+        else
+        {
+            baseaddr = DEFAULT_SPECHIT_MAGIC;
+        }
+    }
+    
+    // Calculate address used in doom2.exe
+
+    addr = baseaddr + (ld - lines) * 0x3E;
+
+    switch(numspechit)
+    {
+        case 9: 
+        case 10:
+        case 11:
+        case 12:
+            tmbbox[numspechit-9] = addr;
+            break;
+        case 13: 
+            crushchange = addr; 
+            break;
+        case 14: 
+            nofit = addr; 
+            break;
+        default:
+            fprintf(stderr, "SpechitOverrun: Warning: unable to emulate"
+                            "an overrun where numspechit=%i\n",
+                            numspechit);
+            break;
+    }
 }
 

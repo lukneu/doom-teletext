@@ -1,33 +1,27 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Weapon sprite animation, weapon objects.
 //	Action functions for weapons.
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: p_pspr.c,v 1.5 1997/02/03 22:45:12 b1 Exp $";
 
 #include "doomdef.h"
 #include "d_event.h"
 
+#include "deh_misc.h"
 
 #include "m_random.h"
 #include "p_local.h"
@@ -47,9 +41,6 @@ rcsid[] = "$Id: p_pspr.c,v 1.5 1997/02/03 22:45:12 b1 Exp $";
 #define WEAPONBOTTOM	128*FRACUNIT
 #define WEAPONTOP		32*FRACUNIT
 
-
-// plasma cells for a bfg attack
-#define BFGCELLS		40		
 
 
 //
@@ -167,7 +158,7 @@ boolean P_CheckAmmo (player_t* player)
 
     // Minimal amount for one shot varies.
     if (player->readyweapon == wp_bfg)
-	count = BFGCELLS;
+	count = deh_bfg_cells_per_shot;
     else if (player->readyweapon == wp_supershotgun)
 	count = 2;	// Double barrel.
     else
@@ -527,7 +518,7 @@ A_Saw
 			     linetarget->x, linetarget->y);
     if (angle - player->mo->angle > ANG180)
     {
-	if (angle - player->mo->angle < -ANG90/20)
+	if ((signed int) (angle - player->mo->angle) < -ANG90/20)
 	    player->mo->angle = angle + ANG90/21;
 	else
 	    player->mo->angle -= ANG90/20;
@@ -542,6 +533,23 @@ A_Saw
     player->mo->flags |= MF_JUSTATTACKED;
 }
 
+// Doom does not check the bounds of the ammo array.  As a result,
+// it is possible to use an ammo type > 4 that overflows into the
+// maxammo array and affects that instead.  Through dehacked, for
+// example, it is possible to make a weapon that decreases the max
+// number of ammo for another weapon.  Emulate this.
+
+static void DecreaseAmmo(player_t *player, int ammonum, int amount)
+{
+    if (ammonum < NUMAMMO)
+    {
+        player->ammo[ammonum] -= amount;
+    }
+    else
+    {
+        player->maxammo[ammonum - NUMAMMO] -= amount;
+    }
+}
 
 
 //
@@ -552,7 +560,7 @@ A_FireMissile
 ( player_t*	player,
   pspdef_t*	psp ) 
 {
-    player->ammo[weaponinfo[player->readyweapon].ammo]--;
+    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
     P_SpawnPlayerMissile (player->mo, MT_ROCKET);
 }
 
@@ -565,7 +573,8 @@ A_FireBFG
 ( player_t*	player,
   pspdef_t*	psp ) 
 {
-    player->ammo[weaponinfo[player->readyweapon].ammo] -= BFGCELLS;
+    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 
+                 deh_bfg_cells_per_shot);
     P_SpawnPlayerMissile (player->mo, MT_BFG);
 }
 
@@ -579,7 +588,7 @@ A_FirePlasma
 ( player_t*	player,
   pspdef_t*	psp ) 
 {
-    player->ammo[weaponinfo[player->readyweapon].ammo]--;
+    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
 
     P_SetPsprite (player,
 		  ps_flash,
@@ -651,7 +660,7 @@ A_FirePistol
     S_StartSound (player->mo, sfx_pistol);
 
     P_SetMobjState (player->mo, S_PLAY_ATK2);
-    player->ammo[weaponinfo[player->readyweapon].ammo]--;
+    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
 
     P_SetPsprite (player,
 		  ps_flash,
@@ -675,7 +684,7 @@ A_FireShotgun
     S_StartSound (player->mo, sfx_shotgn);
     P_SetMobjState (player->mo, S_PLAY_ATK2);
 
-    player->ammo[weaponinfo[player->readyweapon].ammo]--;
+    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
 
     P_SetPsprite (player,
 		  ps_flash,
@@ -705,7 +714,7 @@ A_FireShotgun2
     S_StartSound (player->mo, sfx_dshtgn);
     P_SetMobjState (player->mo, S_PLAY_ATK2);
 
-    player->ammo[weaponinfo[player->readyweapon].ammo]-=2;
+    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 2);
 
     P_SetPsprite (player,
 		  ps_flash,
@@ -740,7 +749,7 @@ A_FireCGun
 	return;
 		
     P_SetMobjState (player->mo, S_PLAY_ATK2);
-    player->ammo[weaponinfo[player->readyweapon].ammo]--;
+    DecreaseAmmo(player, weaponinfo[player->readyweapon].ammo, 1);
 
     P_SetPsprite (player,
 		  ps_flash,

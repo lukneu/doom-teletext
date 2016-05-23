@@ -1,18 +1,17 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 1993-2008 Raven Software
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Lookup tables.
@@ -30,20 +29,12 @@
 //	int tantoangle[2049]	- ArcTan LUT,
 //	  maps tan(angle) to angle fast. Gotta search.	
 //    
-//-----------------------------------------------------------------------------
 
 
 #ifndef __TABLES__
 #define __TABLES__
 
-
-
-#ifdef LINUX
-#include <math.h>
-#else
-#define PI				3.141592657
-#endif
-
+#include "doomtype.h"
 
 #include "m_fixed.h"
 	
@@ -55,21 +46,33 @@
 #define ANGLETOFINESHIFT	19		
 
 // Effective size is 10240.
-extern  fixed_t		finesine[5*FINEANGLES/4];
+extern const fixed_t finesine[5*FINEANGLES/4];
 
 // Re-use data, is just PI/2 pahse shift.
-extern  fixed_t*	finecosine;
+extern const fixed_t *finecosine;
 
 
 // Effective size is 4096.
-extern fixed_t		finetangent[FINEANGLES/2];
+extern const fixed_t finetangent[FINEANGLES/2];
+
+// Gamma correction tables.
+extern const byte gammatable[5][256];
 
 // Binary Angle Measument, BAM.
-#define ANG45			0x20000000
-#define ANG90			0x40000000
-#define ANG180		0x80000000
-#define ANG270		0xc0000000
 
+#define ANG45           0x20000000
+#define ANG90           0x40000000
+#define ANG180          0x80000000
+#define ANG270          0xc0000000
+#define ANG_MAX         0xffffffff
+
+#define ANG1            (ANG45 / 45)
+#define ANG60           (ANG180 / 3)
+
+// Heretic code uses this definition as though it represents one 
+// degree, but it is not!  This is actually ~1.40 degrees.
+
+#define ANG1_X          0x01000000
 
 #define SLOPERANGE		2048
 #define SLOPEBITS		11
@@ -81,20 +84,13 @@ typedef unsigned angle_t;
 // Effective size is 2049;
 // The +1 size is to handle the case when x==y
 //  without additional checking.
-extern angle_t		tantoangle[SLOPERANGE+1];
+extern const angle_t tantoangle[SLOPERANGE+1];
 
 
 // Utility function,
 //  called by R_PointToAngle.
-int
-SlopeDiv
-( unsigned	num,
-  unsigned	den);
+int SlopeDiv(unsigned int num, unsigned int den);
 
 
 #endif
-//-----------------------------------------------------------------------------
-//
-// $Log:$
-//
-//-----------------------------------------------------------------------------
+

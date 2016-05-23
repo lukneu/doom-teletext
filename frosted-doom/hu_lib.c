@@ -1,34 +1,28 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:  heads-up text and input code
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: hu_lib.c,v 1.3 1997/01/26 07:44:58 b1 Exp $";
 
 #include <ctype.h>
 
 #include "doomdef.h"
+#include "doomkeys.h"
 
 #include "v_video.h"
-#include "m_swap.h"
+#include "i_swap.h"
 
 #include "hu_lib.h"
 #include "r_local.h"
@@ -111,7 +105,7 @@ HUlib_drawTextLine
     x = l->x;
     for (i=0;i<l->len;i++)
     {
-	c = toupper(l->l[i]);
+	c = toupper((int)l->l[i]);
 	if (c != ' '
 	    && c >= l->sc
 	    && c <= '_')
@@ -119,7 +113,7 @@ HUlib_drawTextLine
 	    w = SHORT(l->f[c - l->sc]->width);
 	    if (x+w > SCREENWIDTH)
 		break;
-	    V_DrawPatchDirect(x, l->y, FG, l->f[c - l->sc]);
+	    V_DrawPatchDirect(x, l->y, l->f[c - l->sc]);
 	    x += w;
 	}
 	else
@@ -134,7 +128,7 @@ HUlib_drawTextLine
     if (drawcursor
 	&& x + SHORT(l->f['_' - l->sc]->width) <= SCREENWIDTH)
     {
-	V_DrawPatchDirect(x, l->y, FG, l->f['_' - l->sc]);
+	V_DrawPatchDirect(x, l->y, l->f['_' - l->sc]);
     }
 }
 
@@ -145,7 +139,6 @@ void HUlib_eraseTextLine(hu_textline_t* l)
     int			lh;
     int			y;
     int			yoffset;
-    //static boolean	lastautomapactive = true;
 
     // Only erases when NOT in automap and the screen is reduced,
     // and the text must either need updating or refreshing
@@ -168,7 +161,6 @@ void HUlib_eraseTextLine(hu_textline_t* l)
 	}
     }
 
-    //lastautomapactive = automapactive;
     if (l->needsupdate) l->needsupdate--;
 
 }
@@ -319,6 +311,7 @@ HUlib_keyInIText
 ( hu_itext_t*	it,
   unsigned char ch )
 {
+    ch = toupper(ch);
 
     if (ch >= ' ' && ch <= '_') 
   	HUlib_addCharToTextLine(&it->l, (char) ch);

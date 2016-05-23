@@ -1,38 +1,32 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Refresh of things, i.e. objects represented by sprites.
 //
-//-----------------------------------------------------------------------------
 
 
-static const char
-rcsid[] = "$Id: r_things.c,v 1.5 1997/02/03 16:47:56 b1 Exp $";
 
 
 #include <stdio.h>
 #include <stdlib.h>
 
 
+#include "deh_main.h"
 #include "doomdef.h"
-#include "m_swap.h"
 
+#include "i_swap.h"
 #include "i_system.h"
 #include "z_zone.h"
 #include "w_wad.h"
@@ -179,7 +173,6 @@ void R_InitSpriteDefs (char** namelist)
     char**	check;
     int		i;
     int		l;
-    int		intname;
     int		frame;
     int		rotation;
     int		start;
@@ -189,7 +182,7 @@ void R_InitSpriteDefs (char** namelist)
     // count the number of sprite names
     check = namelist;
     while (*check != NULL)
-        check++;
+	check++;
 
     numsprites = check-namelist;
 	
@@ -206,17 +199,16 @@ void R_InitSpriteDefs (char** namelist)
     // Just compare 4 characters as ints
     for (i=0 ; i<numsprites ; i++)
     {
-	spritename = namelist[i];
+	spritename = DEH_String(namelist[i]);
 	memset (sprtemp,-1, sizeof(sprtemp));
 		
 	maxframe = -1;
-	intname = *(int *)namelist[i];
 	
 	// scan the lumps,
 	//  filling in the frames for whatever is found
 	for (l=start+1 ; l<end ; l++)
 	{
-	    if (*(int *)lumpinfo[l].name == intname)
+	    if (!strncasecmp(lumpinfo[l].name, spritename, 4))
 	    {
 		frame = lumpinfo[l].name[4] - 'A';
 		rotation = lumpinfo[l].name[5] - '0';
@@ -253,7 +245,7 @@ void R_InitSpriteDefs (char** namelist)
 	      case -1:
 		// no rotations were found for that frame at all
 		I_Error ("R_InitSprites: No patches found "
-			 "for %s frame %c", namelist[i], frame+'A');
+			 "for %s frame %c", spritename, frame+'A');
 		break;
 		
 	      case 0:
@@ -266,7 +258,7 @@ void R_InitSpriteDefs (char** namelist)
 		    if (sprtemp[frame].lump[rotation] == -1)
 			I_Error ("R_InitSprites: Sprite %s frame %c "
 				 "is missing rotations",
-				 namelist[i], frame+'A');
+				 spritename, frame+'A');
 		break;
 	    }
 	}
@@ -416,7 +408,7 @@ R_DrawVisSprite
     }
     else if (vis->mobjflags & MF_TRANSLATION)
     {
-	colfunc = R_DrawTranslatedColumn;
+	colfunc = transcolfunc;
 	dc_translation = translationtables - 256 +
 	    ( (vis->mobjflags & MF_TRANSLATION) >> (MF_TRANSSHIFT-8) );
     }
@@ -504,7 +496,7 @@ void R_ProjectSprite (mobj_t* thing)
     
     // decide which patch to use for sprite relative to player
 #ifdef RANGECHECK
-    if ((unsigned)thing->sprite >= numsprites)
+    if ((unsigned int) thing->sprite >= (unsigned int) numsprites)
 	I_Error ("R_ProjectSprite: invalid sprite number %i ",
 		 thing->sprite);
 #endif
@@ -657,7 +649,7 @@ void R_DrawPSprite (pspdef_t* psp)
     
     // decide which patch to use
 #ifdef RANGECHECK
-    if ( (unsigned)psp->state->sprite >= numsprites)
+    if ( (unsigned)psp->state->sprite >= (unsigned int) numsprites)
 	I_Error ("R_ProjectSprite: invalid sprite number %i ",
 		 psp->state->sprite);
 #endif
@@ -812,11 +804,12 @@ void R_SortVisSprites (void)
     unsorted.prev = vissprite_p-1;
     
     // pull the vissprites out by scale
-    //best = 0;		// shut up the compiler warning
+
     vsprsortedhead.next = vsprsortedhead.prev = &vsprsortedhead;
     for (i=0 ; i<count ; i++)
     {
-	bestscale = MAXINT;
+	bestscale = INT_MAX;
+        best = unsorted.next;
 	for (ds=unsorted.next ; ds!= &unsorted ; ds=ds->next)
 	{
 	    if (ds->scale < bestscale)
@@ -839,9 +832,8 @@ void R_SortVisSprites (void)
 //
 // R_DrawSprite
 //
-//
-short		clipbot[SCREENWIDTH];
-short		cliptop[SCREENWIDTH];
+static short		clipbot[SCREENWIDTH];
+static short		cliptop[SCREENWIDTH];
 void R_DrawSprite (vissprite_t* spr)
 {
     drawseg_t*		ds;

@@ -1,18 +1,16 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:  none
 //	Implements special effects:
@@ -20,7 +18,6 @@
 //	 according to adjacent sectors, respective
 //	 utility functions, etc.
 //
-//-----------------------------------------------------------------------------
 
 
 #ifndef __P_SPEC__
@@ -230,7 +227,7 @@ typedef struct
     bwhere_e	where;
     int		btexture;
     int		btimer;
-    mobj_t*	soundorg;
+    degenmobj_t *soundorg;
 
 } button_t;
 
@@ -327,14 +324,14 @@ void    P_ActivateInStasis(int tag);
 //
 typedef enum
 {
-    normal,
-    close30ThenOpen,
-    close,
-    open,
-    raiseIn5Mins,
-    blazeRaise,
-    blazeOpen,
-    blazeClose
+    vld_normal,
+    vld_close30ThenOpen,
+    vld_close,
+    vld_open,
+    vld_raiseIn5Mins,
+    vld_blazeRaise,
+    vld_blazeOpen,
+    vld_blazeClose
 
 } vldoor_e;
 
@@ -638,8 +635,3 @@ EV_Teleport
   mobj_t*	thing );
 
 #endif
-//-----------------------------------------------------------------------------
-//
-// $Log:$
-//
-//-----------------------------------------------------------------------------

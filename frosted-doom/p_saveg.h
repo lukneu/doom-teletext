@@ -1,33 +1,48 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Savegame I/O, archiving, persistence.
 //
-//-----------------------------------------------------------------------------
 
 
 #ifndef __P_SAVEG__
 #define __P_SAVEG__
 
+#include <stdio.h>
 
-#ifdef __GNUG__
-#pragma interface
-#endif
+// maximum size of a savegame description
 
+#define SAVESTRINGSIZE 24
+
+// temporary filename to use while saving.
+
+char *P_TempSaveGameFile(void);
+
+// filename to use for a savegame slot
+
+char *P_SaveGameFile(int slot);
+
+// Savegame file header read/write functions
+
+boolean P_ReadSaveGameHeader(void);
+void P_WriteSaveGameHeader(char *description);
+
+// Savegame end-of-file read/write functions
+
+boolean P_ReadSaveGameEOF(void);
+void P_WriteSaveGameEOF(void);
 
 // Persistent storage/archiving.
 // These are the load / save game routines.
@@ -40,12 +55,8 @@ void P_UnArchiveThinkers (void);
 void P_ArchiveSpecials (void);
 void P_UnArchiveSpecials (void);
 
-extern byte*		save_p; 
+extern FILE *save_stream;
+extern boolean savegame_error;
 
 
 #endif
-//-----------------------------------------------------------------------------
-//
-// $Log:$
-//
-//-----------------------------------------------------------------------------

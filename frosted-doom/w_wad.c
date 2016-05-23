@@ -1,121 +1,127 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Handles WAD file header, directory, lump I/O.
 //
-//-----------------------------------------------------------------------------
 
 
-static const char
-rcsid[] = "$Id: w_wad.c,v 1.5 1997/02/03 16:47:57 b1 Exp $";
 
 
-#ifdef NORMALUNIX
 #include <ctype.h>
-#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <alloca.h>
-#define O_BINARY		0
-#endif
 
 #include "doomtype.h"
-#include "m_swap.h"
+
+#include "config.h"
+#include "d_iwad.h"
+#include "i_swap.h"
 #include "i_system.h"
+#include "i_video.h"
+#include "m_misc.h"
 #include "z_zone.h"
 
-#ifdef __GNUG__
-#pragma implementation "w_wad.h"
-#endif
 #include "w_wad.h"
 
+typedef struct
+{
+    // Should be "IWAD" or "PWAD".
+    char		identification[4];		
+    int			numlumps;
+    int			infotableofs;
+} PACKEDATTR wadinfo_t;
 
 
-
-
+typedef struct
+{
+    int			filepos;
+    int			size;
+    char		name[8];
+} PACKEDATTR filelump_t;
 
 //
 // GLOBALS
 //
 
 // Location of each lump on disk.
-lumpinfo_t*		lumpinfo;		
-int			numlumps;
 
-void**			lumpcache;
+lumpinfo_t *lumpinfo;		
+unsigned int numlumps = 0;
 
+// Hash table for fast lookups
 
-#define strcmpi	strcasecmp
+static lumpinfo_t **lumphash;
 
-void d_strupr (char* s)
+// Hash function used for lump names.
+
+unsigned int W_LumpNameHash(const char *s)
 {
-    while (*s) { *s = toupper(*s); s++; }
+    // This is the djb2 string hash function, modded to work on strings
+    // that have a maximum length of 8.
+
+    unsigned int result = 5381;
+    unsigned int i;
+
+    for (i=0; i < 8 && s[i] != '\0'; ++i)
+    {
+        result = ((result << 5) ^ result ) ^ toupper((int)s[i]);
+    }
+
+    return result;
 }
 
-int filelength (int handle) 
-{ 
-    struct stat	fileinfo;
-    
-    if (fstat (handle,&fileinfo) == -1)
-	I_Error ("Error fstating");
-
-    return fileinfo.st_size;
-}
-
-
-void
-ExtractFileBase
-( char*		path,
-  char*		dest )
+// Increase the size of the lumpinfo[] array to the specified size.
+static void ExtendLumpInfo(int newnumlumps)
 {
-    char*	src;
-    int		length;
+    lumpinfo_t *newlumpinfo;
+    unsigned int i;
 
-    src = path + strlen(path) - 1;
-    
-    // back up until a \ or the start
-    while (src != path
-	   && *(src-1) != '\\'
-	   && *(src-1) != '/')
-    {
-	src--;
-    }
-    
-    // copy up to eight characters
-    memset (dest,0,8);
-    length = 0;
-    
-    while (*src && *src != '.')
-    {
-	if (++length == 9)
-	    I_Error ("Filename base of %s >8 chars",path);
+    newlumpinfo = calloc(newnumlumps, sizeof(lumpinfo_t));
 
-	*dest++ = toupper((int)*src++);
+    if (newlumpinfo == NULL)
+    {
+	I_Error ("Couldn't realloc lumpinfo");
     }
+
+    // Copy over lumpinfo_t structures from the old array. If any of
+    // these lumps have been cached, we need to update the user
+    // pointers to the new location.
+    for (i = 0; i < numlumps && i < newnumlumps; ++i)
+    {
+        memcpy(&newlumpinfo[i], &lumpinfo[i], sizeof(lumpinfo_t));
+
+        if (newlumpinfo[i].cache != NULL)
+        {
+            Z_ChangeUser(newlumpinfo[i].cache, &newlumpinfo[i].cache);
+        }
+
+        // We shouldn't be generating a hash table until after all WADs have
+        // been loaded, but just in case...
+        if (lumpinfo[i].next != NULL)
+        {
+            int nextlumpnum = lumpinfo[i].next - lumpinfo;
+            newlumpinfo[i].next = &newlumpinfo[nextlumpnum];
+        }
+    }
+
+    // All done.
+    free(lumpinfo);
+    lumpinfo = newlumpinfo;
+    numlumps = newnumlumps;
 }
-
-
-
-
 
 //
 // LUMP BASED ROUTINES.
@@ -129,214 +135,105 @@ ExtractFileBase
 //  with multiple lumps.
 // Other files are single lumps with the base filename
 //  for the lump name.
-//
-// If filename starts with a tilde, the file is handled
-//  specially to allow map reloads.
-// But: the reload feature is a fragile hack...
 
-int			reloadlump;
-char*			reloadname;
-
-
-void W_AddFile (char *filename)
+wad_file_t *W_AddFile (char *filename)
 {
-    wadinfo_t		header;
-    lumpinfo_t*		lump_p;
-    unsigned		i;
-    int			handle;
-    int			length;
-    int			startlump;
-    filelump_t*		fileinfo;
-    filelump_t		singleinfo;
-    int			storehandle;
-    
+    wadinfo_t header;
+    lumpinfo_t *lump_p;
+    unsigned int i;
+    wad_file_t *wad_file;
+    int length;
+    int startlump;
+    filelump_t *fileinfo;
+    filelump_t *filerover;
+    int newnumlumps;
+
     // open the file and add to directory
 
-    // handle reload indicator.
-    if (filename[0] == '~')
+    wad_file = W_OpenFile(filename);
+
+    if (wad_file == NULL)
     {
-	filename++;
-	reloadname = filename;
-	reloadlump = numlumps;
-    }
-		
-    if ( (handle = open (filename,O_RDONLY | O_BINARY)) == -1)
-    {
-	printf (" couldn't open %s\n",filename);
-	return;
+		printf (" couldn't open %s\n", filename);
+		return NULL;
     }
 
-    printf (" adding %s\n",filename);
-    startlump = numlumps;
-	
-    if (strcmpi (filename+strlen(filename)-3 , "wad" ) )
+    newnumlumps = numlumps;
+
+    if (strcasecmp(filename+strlen(filename)-3 , "wad" ) )
     {
-	// single lump file
-	fileinfo = &singleinfo;
-	singleinfo.filepos = 0;
-	singleinfo.size = LONG(filelength(handle));
-	ExtractFileBase (filename, singleinfo.name);
-	numlumps++;
+    	// single lump file
+
+        // fraggle: Swap the filepos and size here.  The WAD directory
+        // parsing code expects a little-endian directory, so will swap
+        // them back.  Effectively we're constructing a "fake WAD directory"
+        // here, as it would appear on disk.
+
+		fileinfo = Z_Malloc(sizeof(filelump_t), PU_STATIC, 0);
+		fileinfo->filepos = LONG(0);
+		fileinfo->size = LONG(wad_file->length);
+
+        // Name the lump after the base of the filename (without the
+        // extension).
+
+		M_ExtractFileBase (filename, fileinfo->name);
+		newnumlumps++;
     }
     else 
     {
-	// WAD file
-	read (handle, &header, sizeof(header));
-	if (strncmp(header.identification,"IWAD",4))
-	{
-	    // Homebrew levels?
-	    if (strncmp(header.identification,"PWAD",4))
-	    {
-		I_Error ("Wad file %s doesn't have IWAD "
-			 "or PWAD id\n", filename);
-	    }
-	    
-	    // ???modifiedgame = true;		
-	}
-	header.numlumps = LONG(header.numlumps);
-	header.infotableofs = LONG(header.infotableofs);
-	length = header.numlumps*sizeof(filelump_t);
-	//XXX fileinfo = alloca (length);
-	fileinfo = malloc (length);
-	lseek (handle, header.infotableofs, SEEK_SET);
-	read (handle, fileinfo, length);
-	numlumps += header.numlumps;
+    	// WAD file
+        W_Read(wad_file, 0, &header, sizeof(header));
+
+		if (strncmp(header.identification,"IWAD",4))
+		{
+			// Homebrew levels?
+			if (strncmp(header.identification,"PWAD",4))
+			{
+			I_Error ("Wad file %s doesn't have IWAD "
+				 "or PWAD id\n", filename);
+			}
+
+			// ???modifiedgame = true;
+		}
+
+		header.numlumps = LONG(header.numlumps);
+		header.infotableofs = LONG(header.infotableofs);
+		length = header.numlumps*sizeof(filelump_t);
+		fileinfo = Z_Malloc(length, PU_STATIC, 0);
+
+        W_Read(wad_file, header.infotableofs, fileinfo, length);
+        newnumlumps += header.numlumps;
     }
 
-    
-    // Fill in lumpinfo
-    lumpinfo = realloc (lumpinfo, numlumps*sizeof(lumpinfo_t));
-
-    if (!lumpinfo)
-	I_Error ("Couldn't realloc lumpinfo");
+    // Increase size of numlumps array to accomodate the new file.
+    startlump = numlumps;
+    ExtendLumpInfo(newnumlumps);
 
     lump_p = &lumpinfo[startlump];
-	
-    storehandle = reloadname ? -1 : handle;
-	
-    for (i=startlump ; i<numlumps ; i++,lump_p++, fileinfo++)
+
+    filerover = fileinfo;
+
+    for (i=startlump; i<numlumps; ++i)
     {
-	lump_p->handle = storehandle;
-	lump_p->position = LONG(fileinfo->filepos);
-	lump_p->size = LONG(fileinfo->size);
-	strncpy (lump_p->name, fileinfo->name, 8);
+		lump_p->wad_file = wad_file;
+		lump_p->position = LONG(filerover->filepos);
+		lump_p->size = LONG(filerover->size);
+			lump_p->cache = NULL;
+		strncpy(lump_p->name, filerover->name, 8);
+
+			++lump_p;
+			++filerover;
     }
 
-    //XXX: Alloca replacement
-    free(fileinfo);
-	
-    if (reloadname)
-	close (handle);
-}
+    Z_Free(fileinfo);
 
-
-
-
-//
-// W_Reload
-// Flushes any of the reloadable lumps in memory
-//  and reloads the directory.
-//
-void W_Reload (void)
-{
-    wadinfo_t		header;
-    int			lumpcount;
-    lumpinfo_t*		lump_p;
-    unsigned		i;
-    int			handle;
-    int			length;
-    filelump_t*		fileinfo;
-	
-    if (!reloadname)
-	return;
-		
-    if ( (handle = open (reloadname,O_RDONLY | O_BINARY)) == -1)
-	I_Error ("W_Reload: couldn't open %s",reloadname);
-
-    read (handle, &header, sizeof(header));
-    lumpcount = LONG(header.numlumps);
-    header.infotableofs = LONG(header.infotableofs);
-    length = lumpcount*sizeof(filelump_t);
-    //XXX fileinfo = alloca (length);
-    fileinfo = malloc (length);
-    if (!fileinfo)
-        return;
-    lseek (handle, header.infotableofs, SEEK_SET);
-    read (handle, fileinfo, length);
-    
-    // Fill in lumpinfo
-    lump_p = &lumpinfo[reloadlump];
-	
-    for (i=reloadlump ;
-	 i<reloadlump+lumpcount ;
-	 i++,lump_p++, fileinfo++)
+    if (lumphash != NULL)
     {
-	if (lumpcache[i])
-	    Z_Free (lumpcache[i]);
-
-	lump_p->position = LONG(fileinfo->filepos);
-	lump_p->size = LONG(fileinfo->size);
+        Z_Free(lumphash);
+        lumphash = NULL;
     }
 
-    free(fileinfo);
-    close (handle);
-}
-
-
-
-//
-// W_InitMultipleFiles
-// Pass a null terminated list of files to use.
-// All files are optional, but at least one file
-//  must be found.
-// Files with a .wad extension are idlink files
-//  with multiple lumps.
-// Other files are single lumps with the base filename
-//  for the lump name.
-// Lump names can appear multiple times.
-// The name searcher looks backwards, so a later file
-//  does override all earlier ones.
-//
-void W_InitMultipleFiles (char** filenames)
-{	
-    int		size;
-    
-    // open all the files, load headers, and count lumps
-    numlumps = 0;
-
-    // will be realloced as lumps are added
-    lumpinfo = malloc(1);	
-
-    for ( ; *filenames ; filenames++)
-	W_AddFile (*filenames);
-
-    if (!numlumps)
-	I_Error ("W_InitFiles: no files found");
-    
-    // set up caching
-    size = numlumps * sizeof(*lumpcache);
-    lumpcache = malloc (size);
-    
-    if (!lumpcache)
-	I_Error ("Couldn't allocate lumpcache");
-
-    memset (lumpcache,0, size);
-}
-
-
-
-
-//
-// W_InitFile
-// Just initialize from a single file.
-//
-void W_InitFile (char* filename)
-{
-    char*	names[2];
-
-    names[0] = filename;
-    names[1] = NULL;
-    W_InitMultipleFiles (names);
+    return wad_file;
 }
 
 
@@ -358,42 +255,44 @@ int W_NumLumps (void)
 
 int W_CheckNumForName (char* name)
 {
-    union {
-	char	s[9];
-	int	x[2];
-	
-    } name8;
-    
-    int		v1;
-    int		v2;
-    lumpinfo_t*	lump_p;
+    lumpinfo_t *lump_p;
+    int i;
 
-    // make the name into two integers for easy compares
-    strncpy (name8.s,name,8);
+    // Do we have a hash table yet?
 
-    // in case the name was a fill 8 chars
-    name8.s[8] = 0;
-
-    // case insensitive
-    d_strupr (name8.s);
-
-    v1 = name8.x[0];
-    v2 = name8.x[1];
-
-
-    // scan backwards so patch lump files take precedence
-    lump_p = lumpinfo + numlumps;
-
-    while (lump_p-- != lumpinfo)
+    if (lumphash != NULL)
     {
-	if ( *(int *)lump_p->name == v1
-	     && *(int *)&lump_p->name[4] == v2)
-	{
-	    return lump_p - lumpinfo;
-	}
+        int hash;
+        
+        // We do! Excellent.
+
+        hash = W_LumpNameHash(name) % numlumps;
+        
+        for (lump_p = lumphash[hash]; lump_p != NULL; lump_p = lump_p->next)
+        {
+            if (!strncasecmp(lump_p->name, name, 8))
+            {
+                return lump_p - lumpinfo;
+            }
+        }
+    } 
+    else
+    {
+        // We don't have a hash table generate yet. Linear search :-(
+        // 
+        // scan backwards so patch lump files take precedence
+
+        for (i=numlumps-1; i >= 0; --i)
+        {
+            if (!strncasecmp(lumpinfo[i].name, name, 8))
+            {
+                return i;
+            }
+        }
     }
 
     // TFB. Not found.
+
     return -1;
 }
 
@@ -409,10 +308,12 @@ int W_GetNumForName (char* name)
     int	i;
 
     i = W_CheckNumForName (name);
-    
-    if (i == -1)
-      I_Error ("W_GetNumForName: %s not found!", name);
-      
+
+    if (i < 0)
+    {
+        I_Error ("W_GetNumForName: %s not found!", name);
+    }
+ 
     return i;
 }
 
@@ -421,10 +322,12 @@ int W_GetNumForName (char* name)
 // W_LumpLength
 // Returns the buffer size needed to load the given lump.
 //
-int W_LumpLength (int lump)
+int W_LumpLength (unsigned int lump)
 {
     if (lump >= numlumps)
-	I_Error ("W_LumpLength: %i >= numlumps",lump);
+    {
+	I_Error ("W_LumpLength: %i >= numlumps", lump);
+    }
 
     return lumpinfo[lump].size;
 }
@@ -436,42 +339,29 @@ int W_LumpLength (int lump)
 // Loads the lump into the given buffer,
 //  which must be >= W_LumpLength().
 //
-void
-W_ReadLump
-( int		lump,
-  void*		dest )
+void W_ReadLump(unsigned int lump, void *dest)
 {
-    int		c;
-    lumpinfo_t*	l;
-    int		handle;
+    int c;
+    lumpinfo_t *l;
 	
     if (lump >= numlumps)
-	I_Error ("W_ReadLump: %i >= numlumps",lump);
+    {
+	I_Error ("W_ReadLump: %i >= numlumps", lump);
+    }
 
     l = lumpinfo+lump;
 	
-    // ??? I_BeginRead ();
+    I_BeginRead ();
 	
-    if (l->handle == -1)
-    {
-	// reloadable file, so use open / read / close
-	if ( (handle = open (reloadname,O_RDONLY | O_BINARY)) == -1)
-	    I_Error ("W_ReadLump: couldn't open %s",reloadname);
-    }
-    else
-	handle = l->handle;
-		
-    lseek (handle, l->position, SEEK_SET);
-    c = read (handle, dest, l->size);
+    c = W_Read(l->wad_file, l->position, dest, l->size);
 
     if (c < l->size)
+    {
 	I_Error ("W_ReadLump: only read %i of %i on lump %i",
-		 c,l->size,lump);	
+		 c, l->size, lump);	
+    }
 
-    if (l->handle == -1)
-	close (handle);
-		
-    // ??? I_EndRead ();
+    I_EndRead ();
 }
 
 
@@ -480,31 +370,55 @@ W_ReadLump
 //
 // W_CacheLumpNum
 //
-void*
-W_CacheLumpNum
-( int		lump,
-  int		tag )
-{
-    byte*	ptr;
+// Load a lump into memory and return a pointer to a buffer containing
+// the lump data.
+//
+// 'tag' is the type of zone memory buffer to allocate for the lump
+// (usually PU_STATIC or PU_CACHE).  If the lump is loaded as 
+// PU_STATIC, it should be released back using W_ReleaseLumpNum
+// when no longer needed (do not use Z_ChangeTag).
+//
 
-    if ((unsigned)lump >= numlumps)
-	I_Error ("W_CacheLumpNum: %i >= numlumps",lump);
-		
-    if (!lumpcache[lump])
+void *W_CacheLumpNum(int lumpnum, int tag)
+{
+    byte *result;
+    lumpinfo_t *lump;
+
+    if ((unsigned)lumpnum >= numlumps)
     {
-	// read the lump in
-	
-	//printf ("cache miss on lump %i\n",lump);
-	ptr = Z_Malloc (W_LumpLength (lump), tag, &lumpcache[lump]);
-	W_ReadLump (lump, lumpcache[lump]);
+	I_Error ("W_CacheLumpNum: %i >= numlumps", lumpnum);
+    }
+
+    lump = &lumpinfo[lumpnum];
+
+    // Get the pointer to return.  If the lump is in a memory-mapped
+    // file, we can just return a pointer to within the memory-mapped
+    // region.  If the lump is in an ordinary file, we may already
+    // have it cached; otherwise, load it into memory.
+
+    if (lump->wad_file->mapped != NULL)
+    {
+        // Memory mapped file, return from the mmapped region.
+
+        result = lump->wad_file->mapped + lump->position;
+    }
+    else if (lump->cache != NULL)
+    {
+        // Already cached, so just switch the zone tag.
+
+        result = lump->cache;
+        Z_ChangeTag(lump->cache, tag);
     }
     else
     {
-	//printf ("cache hit on lump %i\n",lump);
-	Z_ChangeTag (lumpcache[lump],tag);
+        // Not yet loaded, so load it now
+
+        lump->cache = Z_Malloc(W_LumpLength(lumpnum), tag, &lump->cache);
+	W_ReadLump (lumpnum, lump->cache);
+        result = lump->cache;
     }
 	
-    return lumpcache[lump];
+    return result;
 }
 
 
@@ -512,14 +426,48 @@ W_CacheLumpNum
 //
 // W_CacheLumpName
 //
-void*
-W_CacheLumpName
-( char*		name,
-  int		tag )
+void *W_CacheLumpName(char *name, int tag)
 {
-    return W_CacheLumpNum (W_GetNumForName(name), tag);
+    return W_CacheLumpNum(W_GetNumForName(name), tag);
 }
 
+// 
+// Release a lump back to the cache, so that it can be reused later 
+// without having to read from disk again, or alternatively, discarded
+// if we run out of memory.
+//
+// Back in Vanilla Doom, this was just done using Z_ChangeTag 
+// directly, but now that we have WAD mmap, things are a bit more
+// complicated ...
+//
+
+void W_ReleaseLumpNum(int lumpnum)
+{
+    lumpinfo_t *lump;
+
+    if ((unsigned)lumpnum >= numlumps)
+    {
+	I_Error ("W_ReleaseLumpNum: %i >= numlumps", lumpnum);
+    }
+
+    lump = &lumpinfo[lumpnum];
+
+    if (lump->wad_file->mapped != NULL)
+    {
+        // Memory-mapped file, so nothing needs to be done here.
+    }
+    else
+    {
+        Z_ChangeTag(lump->cache, PU_CACHE);
+    }
+}
+
+void W_ReleaseLumpName(char *name)
+{
+    W_ReleaseLumpNum(W_GetNumForName(name));
+}
+
+#if 0
 
 //
 // W_Profile
@@ -540,7 +488,7 @@ void W_Profile (void)
 	
     for (i=0 ; i<numlumps ; i++)
     {	
-	ptr = lumpcache[i];
+	ptr = lumpinfo[i].cache;
 	if (!ptr)
 	{
 	    ch = ' ';
@@ -557,7 +505,7 @@ void W_Profile (void)
 	info[i][profilecount] = ch;
     }
     profilecount++;
-	
+#if ORIGCODE
     f = fopen ("waddump.txt","w");
     name[8] = 0;
 
@@ -580,6 +528,85 @@ void W_Profile (void)
 	fprintf (f,"\n");
     }
     fclose (f);
+#endif
 }
 
+
+#endif
+
+// Generate a hash table for fast lookups
+
+void W_GenerateHashTable(void)
+{
+    unsigned int i;
+
+    // Free the old hash table, if there is one
+
+    if (lumphash != NULL)
+    {
+        Z_Free(lumphash);
+    }
+
+    // Generate hash table
+    if (numlumps > 0)
+    {
+        lumphash = Z_Malloc(sizeof(lumpinfo_t *) * numlumps, PU_STATIC, NULL);
+        memset(lumphash, 0, sizeof(lumpinfo_t *) * numlumps);
+
+        for (i=0; i<numlumps; ++i)
+        {
+            unsigned int hash;
+
+            hash = W_LumpNameHash(lumpinfo[i].name) % numlumps;
+
+            // Hook into the hash table
+
+            lumpinfo[i].next = lumphash[hash];
+            lumphash[hash] = &lumpinfo[i];
+        }
+    }
+
+    // All done!
+}
+
+// Lump names that are unique to particular game types. This lets us check
+// the user is not trying to play with the wrong executable, eg.
+// chocolate-doom -iwad hexen.wad.
+static const struct
+{
+    GameMission_t mission;
+    char *lumpname;
+} unique_lumps[] = {
+    { doom,    "POSSA1" },
+    { heretic, "IMPXA1" },
+    { hexen,   "ETTNA1" },
+    { strife,  "AGRDA1" },
+};
+
+void W_CheckCorrectIWAD(GameMission_t mission)
+{
+    int i;
+    int lumpnum;
+
+    for (i = 0; i < arrlen(unique_lumps); ++i)
+    {
+        if (mission != unique_lumps[i].mission)
+        {
+            lumpnum = W_CheckNumForName(unique_lumps[i].lumpname);
+
+            if (lumpnum >= 0)
+            {
+                I_Error("\nYou are trying to use a %s IWAD file with "
+                        "the %s%s binary.\nThis isn't going to work.\n"
+                        "You probably want to use the %s%s binary.",
+                        D_SuggestGameName(unique_lumps[i].mission,
+                                          indetermined),
+                        PROGRAM_PREFIX,
+                        D_GameMissionString(mission),
+                        PROGRAM_PREFIX,
+                        D_GameMissionString(unique_lumps[i].mission));
+            }
+        }
+    }
+}
 

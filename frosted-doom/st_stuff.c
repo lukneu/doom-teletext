@@ -1,30 +1,23 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Status bar code.
 //	Does the face/direction indicator animatin.
 //	Does palette indicators as well (red pain/berserk, bright pickup)
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: st_stuff.c,v 1.6 1997/02/03 22:45:13 b1 Exp $";
 
 
 #include <stdio.h>
@@ -32,10 +25,14 @@ rcsid[] = "$Id: st_stuff.c,v 1.6 1997/02/03 22:45:13 b1 Exp $";
 #include "i_system.h"
 #include "i_video.h"
 #include "z_zone.h"
+#include "m_misc.h"
 #include "m_random.h"
 #include "w_wad.h"
 
+#include "deh_main.h"
+#include "deh_misc.h"
 #include "doomdef.h"
+#include "doomkeys.h"
 
 #include "g_game.h"
 
@@ -256,24 +253,20 @@ rcsid[] = "$Id: st_stuff.c,v 1.6 1997/02/03 22:45:13 b1 Exp $";
  // Height, in lines. 
 #define ST_OUTHEIGHT		1
 
-#define ST_MAPWIDTH	\
-    (strlen(mapnames[(gameepisode-1)*9+(gamemap-1)]))
-
 #define ST_MAPTITLEX \
     (SCREENWIDTH - ST_MAPWIDTH * ST_CHATFONTWIDTH)
 
 #define ST_MAPTITLEY		0
 #define ST_MAPHEIGHT		1
 
+// graphics are drawn to a backing screen and blitted to the real screen
+byte                   *st_backing_screen;
 	    
 // main player in game
 static player_t*	plyr; 
 
 // ST_Start() has just been called
 static boolean		st_firsttime;
-
-// used to execute ST_Init() only once
-static int		veryfirsttime = 1;
 
 // lump number for PLAYPAL
 static int		lu_palette;
@@ -392,103 +385,27 @@ static int	keyboxes[3];
 // a random number per tick
 static int	st_randomnumber;  
 
-
-
-// Massive bunches of cheat shit
-//  to keep it from being easy to figure them out.
-// Yeah, right...
-unsigned char	cheat_mus_seq[] =
-{
-    0xb2, 0x26, 0xb6, 0xae, 0xea, 1, 0, 0, 0xff
-};
-
-unsigned char	cheat_choppers_seq[] =
-{
-    0xb2, 0x26, 0xe2, 0x32, 0xf6, 0x2a, 0x2a, 0xa6, 0x6a, 0xea, 0xff // id...
-};
-
-unsigned char	cheat_god_seq[] =
-{
-    0xb2, 0x26, 0x26, 0xaa, 0x26, 0xff  // iddqd
-};
-
-unsigned char	cheat_ammo_seq[] =
-{
-    0xb2, 0x26, 0xf2, 0x66, 0xa2, 0xff	// idkfa
-};
-
-unsigned char	cheat_ammonokey_seq[] =
-{
-    0xb2, 0x26, 0x66, 0xa2, 0xff	// idfa
-};
-
-
-// Smashing Pumpkins Into Samml Piles Of Putried Debris. 
-unsigned char	cheat_noclip_seq[] =
-{
-    0xb2, 0x26, 0xea, 0x2a, 0xb2,	// idspispopd
-    0xea, 0x2a, 0xf6, 0x2a, 0x26, 0xff
-};
-
-//
-unsigned char	cheat_commercial_noclip_seq[] =
-{
-    0xb2, 0x26, 0xe2, 0x36, 0xb2, 0x2a, 0xff	// idclip
-}; 
-
-
-
-unsigned char	cheat_powerup_seq[7][10] =
-{
-    { 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0x6e, 0xff }, 	// beholdv
-    { 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xea, 0xff }, 	// beholds
-    { 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xb2, 0xff }, 	// beholdi
-    { 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0x6a, 0xff }, 	// beholdr
-    { 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xa2, 0xff }, 	// beholda
-    { 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0x36, 0xff }, 	// beholdl
-    { 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xff }		// behold
-};
-
-
-unsigned char	cheat_clev_seq[] =
-{
-    0xb2, 0x26,  0xe2, 0x36, 0xa6, 0x6e, 1, 0, 0, 0xff	// idclev
-};
-
-
-// my position cheat
-unsigned char	cheat_mypos_seq[] =
-{
-    0xb2, 0x26, 0xb6, 0xba, 0x2a, 0xf6, 0xea, 0xff	// idmypos
-}; 
-
-
-// Now what?
-cheatseq_t	cheat_mus = { cheat_mus_seq, 0 };
-cheatseq_t	cheat_god = { cheat_god_seq, 0 };
-cheatseq_t	cheat_ammo = { cheat_ammo_seq, 0 };
-cheatseq_t	cheat_ammonokey = { cheat_ammonokey_seq, 0 };
-cheatseq_t	cheat_noclip = { cheat_noclip_seq, 0 };
-cheatseq_t	cheat_commercial_noclip = { cheat_commercial_noclip_seq, 0 };
+cheatseq_t cheat_mus = CHEAT("idmus", 2);
+cheatseq_t cheat_god = CHEAT("iddqd", 0);
+cheatseq_t cheat_ammo = CHEAT("idkfa", 0);
+cheatseq_t cheat_ammonokey = CHEAT("idfa", 0);
+cheatseq_t cheat_noclip = CHEAT("idspispopd", 0);
+cheatseq_t cheat_commercial_noclip = CHEAT("idclip", 0);
 
 cheatseq_t	cheat_powerup[7] =
 {
-    { cheat_powerup_seq[0], 0 },
-    { cheat_powerup_seq[1], 0 },
-    { cheat_powerup_seq[2], 0 },
-    { cheat_powerup_seq[3], 0 },
-    { cheat_powerup_seq[4], 0 },
-    { cheat_powerup_seq[5], 0 },
-    { cheat_powerup_seq[6], 0 }
+    CHEAT("idbeholdv", 0),
+    CHEAT("idbeholds", 0),
+    CHEAT("idbeholdi", 0),
+    CHEAT("idbeholdr", 0),
+    CHEAT("idbeholda", 0),
+    CHEAT("idbeholdl", 0),
+    CHEAT("idbehold", 0),
 };
 
-cheatseq_t	cheat_choppers = { cheat_choppers_seq, 0 };
-cheatseq_t	cheat_clev = { cheat_clev_seq, 0 };
-cheatseq_t	cheat_mypos = { cheat_mypos_seq, 0 };
-
-
-// 
-extern char*	mapnames[];
+cheatseq_t cheat_choppers = CHEAT("idchoppers", 0);
+cheatseq_t cheat_clev = CHEAT("idclev", 2);
+cheatseq_t cheat_mypos = CHEAT("idmypos", 0);
 
 
 //
@@ -501,12 +418,16 @@ void ST_refreshBackground(void)
 
     if (st_statusbaron)
     {
-	V_DrawPatch(ST_X, 0, BG, sbar);
+        V_UseBuffer(st_backing_screen);
+
+	V_DrawPatch(ST_X, 0, sbar);
 
 	if (netgame)
-	    V_DrawPatch(ST_FX, 0, BG, faceback);
+	    V_DrawPatch(ST_FX, 0, faceback);
 
-	V_CopyRect(ST_X, 0, BG, ST_WIDTH, ST_HEIGHT, ST_X, ST_Y, FG);
+        V_RestoreBuffer();
+
+	V_CopyRect(ST_X, 0, st_backing_screen, ST_WIDTH, ST_HEIGHT, ST_X, ST_Y);
     }
 
 }
@@ -540,13 +461,10 @@ ST_Responder (event_t* ev)
   // if a user keypress...
   else if (ev->type == ev_keydown)
   {
-    if (!netgame)
+    if (!netgame && gameskill != sk_nightmare)
     {
-      // b. - enabled for more debug fun.
-      // if (gameskill != sk_nightmare) {
-      
       // 'dqd' cheat for toggleable god mode
-      if (cht_CheckCheat(&cheat_god, ev->data1))
+      if (cht_CheckCheat(&cheat_god, ev->data2))
       {
 	plyr->cheats ^= CF_GODMODE;
 	if (plyr->cheats & CF_GODMODE)
@@ -554,17 +472,17 @@ ST_Responder (event_t* ev)
 	  if (plyr->mo)
 	    plyr->mo->health = 100;
 	  
-	  plyr->health = 100;
-	  plyr->message = STSTR_DQDON;
+	  plyr->health = deh_god_mode_health;
+	  plyr->message = DEH_String(STSTR_DQDON);
 	}
 	else 
-	  plyr->message = STSTR_DQDOFF;
+	  plyr->message = DEH_String(STSTR_DQDOFF);
       }
       // 'fa' cheat for killer fucking arsenal
-      else if (cht_CheckCheat(&cheat_ammonokey, ev->data1))
+      else if (cht_CheckCheat(&cheat_ammonokey, ev->data2))
       {
-	plyr->armorpoints = 200;
-	plyr->armortype = 2;
+	plyr->armorpoints = deh_idfa_armor;
+	plyr->armortype = deh_idfa_armor_class;
 	
 	for (i=0;i<NUMWEAPONS;i++)
 	  plyr->weaponowned[i] = true;
@@ -572,13 +490,13 @@ ST_Responder (event_t* ev)
 	for (i=0;i<NUMAMMO;i++)
 	  plyr->ammo[i] = plyr->maxammo[i];
 	
-	plyr->message = STSTR_FAADDED;
+	plyr->message = DEH_String(STSTR_FAADDED);
       }
       // 'kfa' cheat for key full ammo
-      else if (cht_CheckCheat(&cheat_ammo, ev->data1))
+      else if (cht_CheckCheat(&cheat_ammo, ev->data2))
       {
-	plyr->armorpoints = 200;
-	plyr->armortype = 2;
+	plyr->armorpoints = deh_idkfa_armor;
+	plyr->armortype = deh_idkfa_armor_class;
 	
 	for (i=0;i<NUMWEAPONS;i++)
 	  plyr->weaponowned[i] = true;
@@ -589,24 +507,29 @@ ST_Responder (event_t* ev)
 	for (i=0;i<NUMCARDS;i++)
 	  plyr->cards[i] = true;
 	
-	plyr->message = STSTR_KFAADDED;
+	plyr->message = DEH_String(STSTR_KFAADDED);
       }
       // 'mus' cheat for changing music
-      else if (cht_CheckCheat(&cheat_mus, ev->data1))
+      else if (cht_CheckCheat(&cheat_mus, ev->data2))
       {
 	
 	char	buf[3];
 	int		musnum;
 	
-	plyr->message = STSTR_MUS;
+	plyr->message = DEH_String(STSTR_MUS);
 	cht_GetParam(&cheat_mus, buf);
-	
-	if (gamemode == commercial)
+
+        // Note: The original v1.9 had a bug that tried to play back
+        // the Doom II music regardless of gamemode.  This was fixed
+        // in the Ultimate Doom executable so that it would work for
+        // the Doom 1 music as well.
+
+	if (gamemode == commercial || gameversion < exe_ultimate)
 	{
 	  musnum = mus_runnin + (buf[0]-'0')*10 + buf[1]-'0' - 1;
 	  
 	  if (((buf[0]-'0')*10 + buf[1]-'0') > 35)
-	    plyr->message = STSTR_NOMUS;
+	    plyr->message = DEH_String(STSTR_NOMUS);
 	  else
 	    S_ChangeMusic(musnum, 1);
 	}
@@ -615,27 +538,31 @@ ST_Responder (event_t* ev)
 	  musnum = mus_e1m1 + (buf[0]-'1')*9 + (buf[1]-'1');
 	  
 	  if (((buf[0]-'1')*9 + buf[1]-'1') > 31)
-	    plyr->message = STSTR_NOMUS;
+	    plyr->message = DEH_String(STSTR_NOMUS);
 	  else
 	    S_ChangeMusic(musnum, 1);
 	}
       }
-      // Simplified, accepting both "noclip" and "idspispopd".
-      // no clipping mode cheat
-      else if ( cht_CheckCheat(&cheat_noclip, ev->data1) 
-		|| cht_CheckCheat(&cheat_commercial_noclip,ev->data1) )
+      else if ( (logical_gamemission == doom 
+                 && cht_CheckCheat(&cheat_noclip, ev->data2))
+             || (logical_gamemission != doom 
+                 && cht_CheckCheat(&cheat_commercial_noclip,ev->data2)))
       {	
+        // Noclip cheat.
+        // For Doom 1, use the idspipsopd cheat; for all others, use
+        // idclip
+
 	plyr->cheats ^= CF_NOCLIP;
 	
 	if (plyr->cheats & CF_NOCLIP)
-	  plyr->message = STSTR_NCON;
+	  plyr->message = DEH_String(STSTR_NCON);
 	else
-	  plyr->message = STSTR_NCOFF;
+	  plyr->message = DEH_String(STSTR_NCOFF);
       }
       // 'behold?' power-up cheats
       for (i=0;i<6;i++)
       {
-	if (cht_CheckCheat(&cheat_powerup[i], ev->data1))
+	if (cht_CheckCheat(&cheat_powerup[i], ev->data2))
 	{
 	  if (!plyr->powers[i])
 	    P_GivePower( plyr, i);
@@ -644,36 +571,36 @@ ST_Responder (event_t* ev)
 	  else
 	    plyr->powers[i] = 0;
 	  
-	  plyr->message = STSTR_BEHOLDX;
+	  plyr->message = DEH_String(STSTR_BEHOLDX);
 	}
       }
       
       // 'behold' power-up menu
-      if (cht_CheckCheat(&cheat_powerup[6], ev->data1))
+      if (cht_CheckCheat(&cheat_powerup[6], ev->data2))
       {
-	plyr->message = STSTR_BEHOLD;
+	plyr->message = DEH_String(STSTR_BEHOLD);
       }
       // 'choppers' invulnerability & chainsaw
-      else if (cht_CheckCheat(&cheat_choppers, ev->data1))
+      else if (cht_CheckCheat(&cheat_choppers, ev->data2))
       {
 	plyr->weaponowned[wp_chainsaw] = true;
 	plyr->powers[pw_invulnerability] = true;
-	plyr->message = STSTR_CHOPPERS;
+	plyr->message = DEH_String(STSTR_CHOPPERS);
       }
       // 'mypos' for player position
-      else if (cht_CheckCheat(&cheat_mypos, ev->data1))
+      else if (cht_CheckCheat(&cheat_mypos, ev->data2))
       {
-	static char	buf[ST_MSGWIDTH];
-	sprintf(buf, "ang=0x%x;x,y=(0x%x,0x%x)",
-		players[consoleplayer].mo->angle,
-		players[consoleplayer].mo->x,
-		players[consoleplayer].mo->y);
-	plyr->message = buf;
+        static char buf[ST_MSGWIDTH];
+        M_snprintf(buf, sizeof(buf), "ang=0x%x;x,y=(0x%x,0x%x)",
+                   players[consoleplayer].mo->angle,
+                   players[consoleplayer].mo->x,
+                   players[consoleplayer].mo->y);
+        plyr->message = buf;
       }
     }
     
     // 'clev' change-level cheat
-    if (cht_CheckCheat(&cheat_clev, ev->data1))
+    if (!netgame && cht_CheckCheat(&cheat_clev, ev->data2))
     {
       char		buf[3];
       int		epsd;
@@ -683,7 +610,7 @@ ST_Responder (event_t* ev)
       
       if (gamemode == commercial)
       {
-	epsd = 0;
+	epsd = 1;
 	map = (buf[0] - '0')*10 + buf[1] - '0';
       }
       else
@@ -692,13 +619,20 @@ ST_Responder (event_t* ev)
 	map = buf[1] - '0';
       }
 
+      // Chex.exe always warps to episode 1.
+
+      if (gameversion == exe_chex)
+      {
+        epsd = 1;
+      }
+
       // Catch invalid maps.
       if (epsd < 1)
 	return false;
 
       if (map < 1)
 	return false;
-      
+
       // Ohmygod - this is not going to work.
       if ((gamemode == retail)
 	  && ((epsd > 4) || (map > 9)))
@@ -712,14 +646,16 @@ ST_Responder (event_t* ev)
 	  && ((epsd > 1) || (map > 9)))
 	return false;
 
+      // The source release has this check as map > 34. However, Vanilla
+      // Doom allows IDCLEV up to MAP40 even though it normally crashes.
       if ((gamemode == commercial)
-	&& (( epsd > 1) || (map > 34)))
+	&& (( epsd > 1) || (map > 40)))
 	return false;
 
       // So be it.
-      plyr->message = STSTR_CLEV;
+      plyr->message = DEH_String(STSTR_CLEV);
       G_DeferedInitNew(gameskill, epsd, map);
-    }    
+    }
   }
   return false;
 }
@@ -1042,6 +978,17 @@ void ST_doPaletteStuff(void)
     else
 	palette = 0;
 
+    // In Chex Quest, the player never sees red.  Instead, the
+    // radiation suit palette is used to tint the screen green,
+    // as though the player is being covered in goo by an
+    // attacking flemoid.
+
+    if (gameversion == exe_chex
+     && palette >= STARTREDPALS && palette < STARTREDPALS + NUMREDPALS)
+    {
+        palette = RADIATIONPAL;
+    }
+
     if (palette != st_palette)
     {
 	st_palette = palette;
@@ -1121,7 +1068,12 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 
 }
 
-void ST_loadGraphics(void)
+typedef void (*load_callback_t)(char *lumpname, patch_t **variable); 
+
+// Iterates through all graphics to be loaded or unloaded, along with
+// the variable they use, invoking the specified callback function.
+
+static void ST_loadUnloadGraphics(load_callback_t callback)
 {
 
     int		i;
@@ -1133,112 +1085,105 @@ void ST_loadGraphics(void)
     // Load the numbers, tall and short
     for (i=0;i<10;i++)
     {
-	sprintf(namebuf, "STTNUM%d", i);
-	tallnum[i] = (patch_t *) W_CacheLumpName(namebuf, PU_STATIC);
+	DEH_snprintf(namebuf, 9, "STTNUM%d", i);
+        callback(namebuf, &tallnum[i]);
 
-	sprintf(namebuf, "STYSNUM%d", i);
-	shortnum[i] = (patch_t *) W_CacheLumpName(namebuf, PU_STATIC);
+	DEH_snprintf(namebuf, 9, "STYSNUM%d", i);
+        callback(namebuf, &shortnum[i]);
     }
 
     // Load percent key.
     //Note: why not load STMINUS here, too?
-    tallpercent = (patch_t *) W_CacheLumpName("STTPRCNT", PU_STATIC);
+
+    callback(DEH_String("STTPRCNT"), &tallpercent);
 
     // key cards
     for (i=0;i<NUMCARDS;i++)
     {
-	sprintf(namebuf, "STKEYS%d", i);
-	keys[i] = (patch_t *) W_CacheLumpName(namebuf, PU_STATIC);
+    	DEH_snprintf(namebuf, 9, "STKEYS%d", i);
+        callback(namebuf, &keys[i]);
     }
 
     // arms background
-    armsbg = (patch_t *) W_CacheLumpName("STARMS", PU_STATIC);
+    callback(DEH_String("STARMS"), &armsbg);
 
     // arms ownership widgets
-    for (i=0;i<6;i++)
+    for (i=0; i<6; i++)
     {
-	sprintf(namebuf, "STGNUM%d", i+2);
+    	DEH_snprintf(namebuf, 9, "STGNUM%d", i+2);
 
-	// gray #
-	arms[i][0] = (patch_t *) W_CacheLumpName(namebuf, PU_STATIC);
+    	// gray #
+        callback(namebuf, &arms[i][0]);
 
-	// yellow #
-	arms[i][1] = shortnum[i+2]; 
+        // yellow #
+        arms[i][1] = shortnum[i+2];
     }
 
     // face backgrounds for different color players
-    sprintf(namebuf, "STFB%d", consoleplayer);
-    faceback = (patch_t *) W_CacheLumpName(namebuf, PU_STATIC);
+    DEH_snprintf(namebuf, 9, "STFB%d", consoleplayer);
+    callback(namebuf, &faceback);
 
     // status bar background bits
-    sbar = (patch_t *) W_CacheLumpName("STBAR", PU_STATIC);
+    callback(DEH_String("STBAR"), &sbar);
 
     // face states
     facenum = 0;
-    for (i=0;i<ST_NUMPAINFACES;i++)
+    for (i=0; i<ST_NUMPAINFACES; i++)
     {
-	for (j=0;j<ST_NUMSTRAIGHTFACES;j++)
+	for (j=0; j<ST_NUMSTRAIGHTFACES; j++)
 	{
-	    sprintf(namebuf, "STFST%d%d", i, j);
-	    faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
+	    DEH_snprintf(namebuf, 9, "STFST%d%d", i, j);
+            callback(namebuf, &faces[facenum]);
+            ++facenum;
 	}
-	sprintf(namebuf, "STFTR%d0", i);	// turn right
-	faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
-	sprintf(namebuf, "STFTL%d0", i);	// turn left
-	faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
-	sprintf(namebuf, "STFOUCH%d", i);	// ouch!
-	faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
-	sprintf(namebuf, "STFEVL%d", i);	// evil grin ;)
-	faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
-	sprintf(namebuf, "STFKILL%d", i);	// pissed off
-	faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
+	DEH_snprintf(namebuf, 9, "STFTR%d0", i);	// turn right
+        callback(namebuf, &faces[facenum]);
+        ++facenum;
+	DEH_snprintf(namebuf, 9, "STFTL%d0", i);	// turn left
+        callback(namebuf, &faces[facenum]);
+        ++facenum;
+	DEH_snprintf(namebuf, 9, "STFOUCH%d", i);	// ouch!
+        callback(namebuf, &faces[facenum]);
+        ++facenum;
+	DEH_snprintf(namebuf, 9, "STFEVL%d", i);	// evil grin ;)
+        callback(namebuf, &faces[facenum]);
+        ++facenum;
+	DEH_snprintf(namebuf, 9, "STFKILL%d", i);	// pissed off
+        callback(namebuf, &faces[facenum]);
+        ++facenum;
     }
-    faces[facenum++] = W_CacheLumpName("STFGOD0", PU_STATIC);
-    faces[facenum++] = W_CacheLumpName("STFDEAD0", PU_STATIC);
 
+    callback(DEH_String("STFGOD0"), &faces[facenum]);
+    ++facenum;
+    callback(DEH_String("STFDEAD0"), &faces[facenum]);
+    ++facenum;
+}
+
+static void ST_loadCallback(char *lumpname, patch_t **variable)
+{
+    *variable = W_CacheLumpName(lumpname, PU_STATIC);
+}
+
+void ST_loadGraphics(void)
+{
+    ST_loadUnloadGraphics(ST_loadCallback);
 }
 
 void ST_loadData(void)
 {
-    lu_palette = W_GetNumForName ("PLAYPAL");
+    lu_palette = W_GetNumForName (DEH_String("PLAYPAL"));
     ST_loadGraphics();
+}
+
+static void ST_unloadCallback(char *lumpname, patch_t **variable)
+{
+    W_ReleaseLumpName(lumpname);
+    *variable = NULL;
 }
 
 void ST_unloadGraphics(void)
 {
-
-    int i;
-
-    // unload the numbers, tall and short
-    for (i=0;i<10;i++)
-    {
-	Z_ChangeTag(tallnum[i], PU_CACHE);
-	Z_ChangeTag(shortnum[i], PU_CACHE);
-    }
-    // unload tall percent
-    Z_ChangeTag(tallpercent, PU_CACHE); 
-
-    // unload arms background
-    Z_ChangeTag(armsbg, PU_CACHE); 
-
-    // unload gray #'s
-    for (i=0;i<6;i++)
-	Z_ChangeTag(arms[i][0], PU_CACHE);
-    
-    // unload the key cards
-    for (i=0;i<NUMCARDS;i++)
-	Z_ChangeTag(keys[i], PU_CACHE);
-
-    Z_ChangeTag(sbar, PU_CACHE);
-    Z_ChangeTag(faceback, PU_CACHE);
-
-    for (i=0;i<ST_NUMFACES;i++)
-	Z_ChangeTag(faces[i], PU_CACHE);
-
-    // Note: nobody ain't seen no unloading
-    //   of stminus yet. Dude.
-    
-
+    ST_loadUnloadGraphics(ST_unloadCallback);
 }
 
 void ST_unloadData(void)
@@ -1465,7 +1410,7 @@ void ST_Stop (void)
 
 void ST_Init (void)
 {
-    veryfirsttime = 0;
     ST_loadData();
-    screens[4] = (byte *) Z_Malloc(ST_WIDTH*ST_HEIGHT, PU_STATIC, 0);
+    st_backing_screen = (byte *) Z_Malloc(ST_WIDTH * ST_HEIGHT, PU_STATIC, 0);
 }
+

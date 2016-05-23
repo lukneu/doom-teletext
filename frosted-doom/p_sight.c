@@ -1,28 +1,21 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	LineOfSight/Visibility checks, uses REJECT Lookup Table.
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: p_sight.c,v 1.3 1997/01/28 22:08:28 b1 Exp $";
 
 
 #include "doomdef.h"
@@ -172,7 +165,7 @@ boolean P_CrossSubsector (int num)
 	    continue;
 	
 	line->validcount = validcount;
-		
+
 	v1 = line->v1;
 	v2 = line->v2;
 	s1 = P_DivlineSide (v1->x,v1->y, &strace);
@@ -192,6 +185,14 @@ boolean P_CrossSubsector (int num)
 	// line isn't crossed?
 	if (s1 == s2)
 	    continue;	
+
+        // Backsector may be NULL if this is an "impassible
+        // glass" hack line.
+
+        if (line->backsector == NULL)
+        {
+            return false;
+        }
 
 	// stop because it is not two sided anyway
 	// might do this after updating validcount?

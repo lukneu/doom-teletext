@@ -1,18 +1,16 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //   All the global variables that store the internal state.
@@ -22,7 +20,6 @@
 //    this header file.
 //   In practice, things are a bit messy.
 //
-//-----------------------------------------------------------------------------
 
 
 #ifndef __D_STATE__
@@ -31,15 +28,15 @@
 // We need globally shared data structures,
 //  for defining the global state variables.
 #include "doomdata.h"
-#include "d_net.h"
+#include "d_loop.h"
 
 // We need the playr data structure as well.
 #include "d_player.h"
 
+// Game mode/mission
+#include "d_mode.h"
 
-#ifdef __GNUG__
-#pragma interface
-#endif
+#include "net_defs.h"
 
 
 
@@ -53,20 +50,28 @@ extern  boolean	fastparm;	// checkparm of -fast
 extern  boolean	devparm;	// DEBUG: launched with -devparm
 
 
-
 // -----------------------------------------------------
 // Game Mode - identify IWAD as shareware, retail etc.
 //
 extern GameMode_t	gamemode;
 extern GameMission_t	gamemission;
+extern GameVersion_t    gameversion;
+extern char            *gamedescription;
+
+// If true, we're using one of the mangled BFG edition IWADs.
+extern boolean bfgedition;
+
+// Convenience macro.
+// 'gamemission' can be equal to pack_chex or pack_hacx, but these are
+// just modified versions of doom and doom2, and should be interpreted
+// as the same most of the time.
+
+#define logical_gamemission                             \
+    (gamemission == pack_chex ? doom :                  \
+     gamemission == pack_hacx ? doom2 : gamemission)
 
 // Set if homebrew PWAD stuff has been added.
 extern  boolean	modifiedgame;
-
-
-// -------------------------------------------
-// Language.
-extern  Language_t   language;
 
 
 // -------------------------------------------
@@ -78,6 +83,11 @@ extern  skill_t		startskill;
 extern  int             startepisode;
 extern	int		startmap;
 
+// Savegame slot to load on startup.  This is the value provided to
+// the -loadgame option.  If this has not been provided, this is -1.
+
+extern  int             startloadgame;
+
 extern  boolean		autostart;
 
 // Selected by user. 
@@ -85,29 +95,30 @@ extern  skill_t         gameskill;
 extern  int		gameepisode;
 extern  int		gamemap;
 
+// If non-zero, exit the level after this number of minutes
+extern  int             timelimit;
+
 // Nightmare mode flag, single player.
 extern  boolean         respawnmonsters;
 
 // Netgame? Only true if >1 player.
 extern  boolean	netgame;
 
-// Flag: true only if started as net deathmatch.
-// An enum might handle altdeath/cooperative better.
-extern  boolean	deathmatch;	
-	
+// 0=Cooperative; 1=Deathmatch; 2=Altdeath
+extern int deathmatch;
+
 // -------------------------
 // Internal parameters for sound rendering.
 // These have been taken from the DOS version,
 //  but are not (yet) supported with Linux
 //  (e.g. no sound volume adjustment with menu.
 
-// These are not used, but should be (menu).
 // From m_menu.c:
 //  Sound FX volume has default, 0 - 15
 //  Music volume has default, 0 - 15
 // These are multiplied by 8.
-extern int snd_SfxVolume;      // maximum volume for sound
-extern int snd_MusicVolume;    // maximum volume for music
+extern int sfxVolume;
+extern int musicVolume;
 
 // Current music/sfx card - index useless
 //  w/o a reference LUT in a sound module.
@@ -137,15 +148,10 @@ extern  boolean	paused;		// Game Pause?
 extern  boolean		viewactive;
 
 extern  boolean		nodrawers;
-extern  boolean		noblit;
-
-extern	int		viewwindowx;
-extern	int		viewwindowy;
-extern	int		viewheight;
-extern	int		viewwidth;
-extern	int		scaledviewwidth;
 
 
+extern  boolean         testcontrols;
+extern  int             testcontrols_mousespeed;
 
 
 
@@ -183,6 +189,11 @@ extern  boolean	usergame;
 extern  boolean	demoplayback;
 extern  boolean	demorecording;
 
+// Round angleturn in ticcmds to the nearest 256.  This is used when
+// recording Vanilla demos in netgames.
+
+extern boolean lowres_turn;
+
 // Quit after playing a demo from cmdline.
 extern  boolean		singledemo;	
 
@@ -205,9 +216,6 @@ extern  gamestate_t     gamestate;
 
 
 
-extern	int		gametic;
-
-
 // Bookkeeping on players - state.
 extern	player_t	players[MAXPLAYERS];
 
@@ -228,9 +236,6 @@ extern  mapthing_t      playerstarts[MAXPLAYERS];
 extern  wbstartstruct_t		wminfo;	
 
 
-// LUT of ammunition limits for each kind.
-// This doubles with BackPack powerup item.
-extern  int		maxammo[NUMAMMO];
 
 
 
@@ -241,8 +246,8 @@ extern  int		maxammo[NUMAMMO];
 //
 
 // File handling stuff.
+extern  char *          savegamedir;
 extern	char		basedefault[1024];
-extern  FILE*		debugfile;
 
 // if true, load all graphics at level load
 extern  boolean         precache;
@@ -253,9 +258,6 @@ extern  boolean         precache;
 extern  gamestate_t     wipegamestate;
 
 extern  int             mouseSensitivity;
-//?
-// debug flag to cancel adaptiveness
-extern  boolean         singletics;	
 
 extern  int             bodyqueslot;
 
@@ -270,27 +272,10 @@ extern int		skyflatnum;
 
 // Netgame stuff (buffers and pointers, i.e. indices).
 
-// This is ???
-extern  doomcom_t*	doomcom;
 
-// This points inside doomcom.
-extern  doomdata_t*	netbuffer;	
-
-
-extern  ticcmd_t	localcmds[BACKUPTICS];
 extern	int		rndindex;
 
-extern	int		maketic;
-extern  int             nettics[MAXNETNODES];
-
-extern  ticcmd_t        netcmds[MAXPLAYERS][BACKUPTICS];
-extern	int		ticdup;
-
+extern  ticcmd_t       *netcmds;
 
 
 #endif
-//-----------------------------------------------------------------------------
-//
-// $Log:$
-//
-//-----------------------------------------------------------------------------

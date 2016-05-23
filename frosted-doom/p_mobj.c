@@ -1,28 +1,22 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Moving object handling. Spawn functions.
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: p_mobj.c,v 1.5 1997/02/03 22:45:12 b1 Exp $";
+#include <stdio.h>
 
 #include "i_system.h"
 #include "z_zone.h"
@@ -288,7 +282,29 @@ void P_ZMovement (mobj_t* mo)
 	// Note (id):
 	//  somebody left this after the setting momz to 0,
 	//  kinda useless there.
-	if (mo->flags & MF_SKULLFLY)
+	//
+	// cph - This was the a bug in the linuxdoom-1.10 source which
+	//  caused it not to sync Doom 2 v1.9 demos. Someone
+	//  added the above comment and moved up the following code. So
+	//  demos would desync in close lost soul fights.
+	// Note that this only applies to original Doom 1 or Doom2 demos - not
+	//  Final Doom and Ultimate Doom.  So we test demo_compatibility *and*
+	//  gamemission. (Note we assume that Doom1 is always Ult Doom, which
+	//  seems to hold for most published demos.)
+        //  
+        //  fraggle - cph got the logic here slightly wrong.  There are three
+        //  versions of Doom 1.9:
+        //
+        //  * The version used in registered doom 1.9 + doom2 - no bounce
+        //  * The version used in ultimate doom - has bounce
+        //  * The version used in final doom - has bounce
+        //
+        // So we need to check that this is either retail or commercial
+        // (but not doom2)
+	
+	int correct_lost_soul_bounce = gameversion >= exe_ultimate;
+
+	if (correct_lost_soul_bounce && mo->flags & MF_SKULLFLY)
 	{
 	    // the skull slammed into something
 	    mo->momz = -mo->momz;
@@ -309,6 +325,16 @@ void P_ZMovement (mobj_t* mo)
 	    mo->momz = 0;
 	}
 	mo->z = mo->floorz;
+
+
+	// cph 2001/05/26 -
+	// See lost soul bouncing comment above. We need this here for bug
+	// compatibility with original Doom2 v1.9 - if a soul is charging and
+	// hit by a raising floor this incorrectly reverses its Y momentum.
+	//
+
+        if (!correct_lost_soul_bounce && mo->flags & MF_SKULLFLY)
+            mo->momz = -mo->momz;
 
 	if ( (mo->flags & MF_MISSILE)
 	     && !(mo->flags & MF_NOCLIP) )
@@ -458,7 +484,7 @@ void P_MobjThinker (mobj_t* mobj)
 
 	mobj->movecount++;
 
-	if (mobj->movecount < 12*35)
+	if (mobj->movecount < 12*TICRATE)
 	    return;
 
 	if ( leveltime&31 )
@@ -596,7 +622,7 @@ void P_RespawnSpecials (void)
 	return;		
 
     // wait at least 30 seconds
-    if (leveltime - itemrespawntime[iquetail] < 30*35)
+    if (leveltime - itemrespawntime[iquetail] < 30*TICRATE)
 	return;			
 
     mthing = &itemrespawnque[iquetail];
@@ -649,6 +675,11 @@ void P_SpawnPlayer (mapthing_t* mthing)
     mobj_t*		mobj;
 
     int			i;
+
+    if (mthing->type == 0)
+    {
+        return;
+    }
 
     // not playing?
     if (!playeringame[mthing->type-1])
@@ -723,6 +754,14 @@ void P_SpawnMapThing (mapthing_t* mthing)
 	    deathmatch_p++;
 	}
 	return;
+    }
+
+    if (mthing->type <= 0)
+    {
+        // Thing type 0 is actually "player -1 start".  
+        // For some reason, Vanilla Doom accepts/ignores this.
+
+        return;
     }
 	
     // check for players specially
@@ -881,6 +920,28 @@ void P_CheckMissileSpawn (mobj_t* th)
 	P_ExplodeMissile (th);
 }
 
+// Certain functions assume that a mobj_t pointer is non-NULL,
+// causing a crash in some situations where it is NULL.  Vanilla
+// Doom did not crash because of the lack of proper memory 
+// protection. This function substitutes NULL pointers for
+// pointers to a dummy mobj, to avoid a crash.
+
+mobj_t *P_SubstNullMobj(mobj_t *mobj)
+{
+    if (mobj == NULL)
+    {
+        static mobj_t dummy_mobj;
+
+        dummy_mobj.x = 0;
+        dummy_mobj.y = 0;
+        dummy_mobj.z = 0;
+        dummy_mobj.flags = 0;
+
+        mobj = &dummy_mobj;
+    }
+
+    return mobj;
+}
 
 //
 // P_SpawnMissile
@@ -903,7 +964,7 @@ P_SpawnMissile
 	S_StartSound (th, th->info->seesound);
 
     th->target = source;	// where it came from
-    an = R_PointToAngle2 (source->x, source->y, dest->x, dest->y);	
+    an = R_PointToAngle2 (source->x, source->y, dest->x, dest->y);
 
     // fuzzy player
     if (dest->flags & MF_SHADOW)

@@ -1,20 +1,16 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Implements special effects:
@@ -23,19 +19,18 @@
 //	 utility functions, etc.
 //	Line Tag handling. Line and Sector triggers.
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: p_spec.c,v 1.6 1997/02/03 22:45:12 b1 Exp $";
 
 #include <stdlib.h>
 
 #include "doomdef.h"
 #include "doomstat.h"
 
+#include "deh_main.h"
 #include "i_system.h"
 #include "z_zone.h"
 #include "m_argv.h"
+#include "m_misc.h"
 #include "m_random.h"
 #include "w_wad.h"
 
@@ -72,7 +67,7 @@ typedef struct
 //
 typedef struct
 {
-    int	    istexture;	// if false, it is a flat
+    int 	istexture;	// if false, it is a flat
     char	endname[9];
     char	startname[9];
     int		speed;
@@ -128,7 +123,7 @@ animdef_t		animdefs[] =
     {true,	"WFALL4",	"WFALL1",	8},
     {true,	"DBRAIN4",	"DBRAIN1",	8},
 	
-    {-1,    "",         "",         0}
+    {-1,        "",             "",             0},
 };
 
 anim_t		anims[MAXANIMS];
@@ -149,26 +144,32 @@ void P_InitPicAnims (void)
 {
     int		i;
 
+    
     //	Init animation
     lastanim = anims;
     for (i=0 ; animdefs[i].istexture != -1 ; i++)
     {
+        char *startname, *endname;
+
+        startname = DEH_String(animdefs[i].startname);
+        endname = DEH_String(animdefs[i].endname);
+
 	if (animdefs[i].istexture)
 	{
 	    // different episode ?
-	    if (R_CheckTextureNumForName(animdefs[i].startname) == -1)
+	    if (R_CheckTextureNumForName(startname) == -1)
 		continue;	
 
-	    lastanim->picnum = R_TextureNumForName (animdefs[i].endname);
-	    lastanim->basepic = R_TextureNumForName (animdefs[i].startname);
+	    lastanim->picnum = R_TextureNumForName(endname);
+	    lastanim->basepic = R_TextureNumForName(startname);
 	}
 	else
 	{
-	    if (W_CheckNumForName(animdefs[i].startname) == -1)
+	    if (W_CheckNumForName(startname) == -1)
 		continue;
 
-	    lastanim->picnum = R_FlatNumForName (animdefs[i].endname);
-	    lastanim->basepic = R_FlatNumForName (animdefs[i].startname);
+	    lastanim->picnum = R_FlatNumForName(endname);
+	    lastanim->basepic = R_FlatNumForName(startname);
 	}
 
 	lastanim->istexture = animdefs[i].istexture;
@@ -176,8 +177,7 @@ void P_InitPicAnims (void)
 
 	if (lastanim->numpics < 2)
 	    I_Error ("P_InitPicAnims: bad cycle from %s to %s",
-		     animdefs[i].startname,
-		     animdefs[i].endname);
+		     startname, endname);
 	
 	lastanim->speed = animdefs[i].speed;
 	lastanim++;
@@ -321,58 +321,69 @@ fixed_t	P_FindHighestFloorSurrounding(sector_t *sec)
 // FIND NEXT HIGHEST FLOOR IN SURROUNDING SECTORS
 // Note: this should be doable w/o a fixed array.
 
+// Thanks to entryway for the Vanilla overflow emulation.
+
 // 20 adjoining sectors max!
-#define MAX_ADJOINING_SECTORS    	20
+#define MAX_ADJOINING_SECTORS     20
 
 fixed_t
 P_FindNextHighestFloor
-( sector_t*	sec,
-  int		currentheight )
+( sector_t* sec,
+  int       currentheight )
 {
-    int			i;
-    int			h;
-    int			min;
-    line_t*		check;
-    sector_t*		other;
-    fixed_t		height = currentheight;
+    int         i;
+    int         h;
+    int         min;
+    line_t*     check;
+    sector_t*   other;
+    fixed_t     height = currentheight;
+    fixed_t     heightlist[MAX_ADJOINING_SECTORS + 2];
 
-    
-    fixed_t		heightlist[MAX_ADJOINING_SECTORS];		
-
-    for (i=0, h=0 ;i < sec->linecount ; i++)
+    for (i=0, h=0; i < sec->linecount; i++)
     {
-	check = sec->lines[i];
-	other = getNextSector(check,sec);
+        check = sec->lines[i];
+        other = getNextSector(check,sec);
 
-	if (!other)
-	    continue;
-	
-	if (other->floorheight > height)
-	    heightlist[h++] = other->floorheight;
+        if (!other)
+            continue;
+        
+        if (other->floorheight > height)
+        {
+            // Emulation of memory (stack) overflow
+            if (h == MAX_ADJOINING_SECTORS + 1)
+            {
+                height = other->floorheight;
+            }
+            else if (h == MAX_ADJOINING_SECTORS + 2)
+            {
+                // Fatal overflow: game crashes at 22 textures
+                I_Error("Sector with more than 22 adjoining sectors. "
+                        "Vanilla will crash here");
+            }
 
-	// Check for overflow. Exit.
-	if ( h >= MAX_ADJOINING_SECTORS )
-	{
-	    fprintf( stderr,
-		     "Sector with more than 20 adjoining sectors\n" );
-	    break;
-	}
+            heightlist[h++] = other->floorheight;
+        }
     }
     
     // Find lowest height in list
     if (!h)
-	return currentheight;
-		
+    {
+        return currentheight;
+    }
+        
     min = heightlist[0];
     
     // Range checking? 
-    for (i = 1;i < h;i++)
-	if (heightlist[i] < min)
-	    min = heightlist[i];
-			
+    for (i = 1; i < h; i++)
+    {
+        if (heightlist[i] < min)
+        {
+            min = heightlist[i];
+        }
+    }
+
     return min;
 }
-
 
 //
 // FIND LOWEST CEILING IN THE SURROUNDING SECTORS
@@ -383,7 +394,7 @@ P_FindLowestCeilingSurrounding(sector_t* sec)
     int			i;
     line_t*		check;
     sector_t*		other;
-    fixed_t		height = MAXINT;
+    fixed_t		height = INT_MAX;
 	
     for (i=0 ;i < sec->linecount ; i++)
     {
@@ -541,19 +552,19 @@ P_CrossSpecialLine
 	// All from here to RETRIGGERS.
       case 2:
 	// Open Door
-	EV_DoDoor(line,open);
+	EV_DoDoor(line,vld_open);
 	line->special = 0;
 	break;
 
       case 3:
 	// Close Door
-	EV_DoDoor(line,close);
+	EV_DoDoor(line,vld_close);
 	line->special = 0;
 	break;
 
       case 4:
 	// Raise Door
-	EV_DoDoor(line,normal);
+	EV_DoDoor(line,vld_normal);
 	line->special = 0;
 	break;
 	
@@ -595,7 +606,7 @@ P_CrossSpecialLine
 	
       case 16:
 	// Close Door 30
-	EV_DoDoor(line,close30ThenOpen);
+	EV_DoDoor(line,vld_close30ThenOpen);
 	line->special = 0;
 	break;
 	
@@ -722,13 +733,13 @@ P_CrossSpecialLine
 	
       case 108:
 	// Blazing Door Raise (faster than TURBO!)
-	EV_DoDoor (line,blazeRaise);
+	EV_DoDoor (line,vld_blazeRaise);
 	line->special = 0;
 	break;
 	
       case 109:
 	// Blazing Door Open (faster than TURBO!)
-	EV_DoDoor (line,blazeOpen);
+	EV_DoDoor (line,vld_blazeOpen);
 	line->special = 0;
 	break;
 	
@@ -740,7 +751,7 @@ P_CrossSpecialLine
 	
       case 110:
 	// Blazing Door Close (faster than TURBO!)
-	EV_DoDoor (line,blazeClose);
+	EV_DoDoor (line,vld_blazeClose);
 	line->special = 0;
 	break;
 
@@ -800,12 +811,12 @@ P_CrossSpecialLine
 	
       case 75:
 	// Close Door
-	EV_DoDoor(line,close);
+	EV_DoDoor(line,vld_close);
 	break;
 	
       case 76:
 	// Close Door 30
-	EV_DoDoor(line,close30ThenOpen);
+	EV_DoDoor(line,vld_close30ThenOpen);
 	break;
 	
       case 77:
@@ -845,7 +856,7 @@ P_CrossSpecialLine
 
       case 86:
 	// Open Door
-	EV_DoDoor(line,open);
+	EV_DoDoor(line,vld_open);
 	break;
 	
       case 87:
@@ -865,7 +876,7 @@ P_CrossSpecialLine
 	
       case 90:
 	// Raise Door
-	EV_DoDoor(line,normal);
+	EV_DoDoor(line,vld_normal);
 	break;
 	
       case 91:
@@ -912,17 +923,17 @@ P_CrossSpecialLine
 
       case 105:
 	// Blazing Door Raise (faster than TURBO!)
-	EV_DoDoor (line,blazeRaise);
+	EV_DoDoor (line,vld_blazeRaise);
 	break;
 	
       case 106:
 	// Blazing Door Open (faster than TURBO!)
-	EV_DoDoor (line,blazeOpen);
+	EV_DoDoor (line,vld_blazeOpen);
 	break;
 
       case 107:
 	// Blazing Door Close (faster than TURBO!)
-	EV_DoDoor (line,blazeClose);
+	EV_DoDoor (line,vld_blazeClose);
 	break;
 
       case 120:
@@ -986,7 +997,7 @@ P_ShootSpecialLine
 	
       case 46:
 	// OPEN DOOR
-	EV_DoDoor(line,open);
+	EV_DoDoor(line,vld_open);
 	P_ChangeSwitchTexture(line,1);
 	break;
 	
@@ -1147,13 +1158,97 @@ void P_UpdateSpecials (void)
 			buttonlist[i].btexture;
 		    break;
 		}
-		S_StartSound((mobj_t *)&buttonlist[i].soundorg,sfx_swtchn);
+		S_StartSound(&buttonlist[i].soundorg,sfx_swtchn);
 		memset(&buttonlist[i],0,sizeof(button_t));
 	    }
 	}
-	
 }
 
+
+//
+// Donut overrun emulation
+//
+// Derived from the code from PrBoom+.  Thanks go to Andrey Budko (entryway)
+// as usual :-)
+//
+
+#define DONUT_FLOORHEIGHT_DEFAULT 0x00000000
+#define DONUT_FLOORPIC_DEFAULT 0x16
+
+static void DonutOverrun(fixed_t *s3_floorheight, short *s3_floorpic,
+                         line_t *line, sector_t *pillar_sector)
+{
+    static int first = 1;
+    static int tmp_s3_floorheight;
+    static int tmp_s3_floorpic;
+
+    extern int numflats;
+
+    if (first)
+    {
+        int p;
+
+        // This is the first time we have had an overrun.
+        first = 0;
+
+        // Default values
+        tmp_s3_floorheight = DONUT_FLOORHEIGHT_DEFAULT;
+        tmp_s3_floorpic = DONUT_FLOORPIC_DEFAULT;
+
+        //!
+        // @category compat
+        // @arg <x> <y>
+        //
+        // Use the specified magic values when emulating behavior caused
+        // by memory overruns from improperly constructed donuts.
+        // In Vanilla Doom this can differ depending on the operating
+        // system.  The default (if this option is not specified) is to
+        // emulate the behavior when running under Windows 98.
+
+        p = M_CheckParmWithArgs("-donut", 2);
+
+        if (p > 0)
+        {
+            // Dump of needed memory: (fixed_t)0000:0000 and (short)0000:0008
+            //
+            // C:\>debug
+            // -d 0:0
+            //
+            // DOS 6.22:
+            // 0000:0000    (57 92 19 00) F4 06 70 00-(16 00)
+            // DOS 7.1:
+            // 0000:0000    (9E 0F C9 00) 65 04 70 00-(16 00)
+            // Win98:
+            // 0000:0000    (00 00 00 00) 65 04 70 00-(16 00)
+            // DOSBox under XP:
+            // 0000:0000    (00 00 00 F1) ?? ?? ?? 00-(07 00)
+
+            M_StrToInt(myargv[p + 1], &tmp_s3_floorheight);
+            M_StrToInt(myargv[p + 2], &tmp_s3_floorpic);
+
+            if (tmp_s3_floorpic >= numflats)
+            {
+                fprintf(stderr,
+                        "DonutOverrun: The second parameter for \"-donut\" "
+                        "switch should be greater than 0 and less than number "
+                        "of flats (%d). Using default value (%d) instead. \n",
+                        numflats, DONUT_FLOORPIC_DEFAULT);
+                tmp_s3_floorpic = DONUT_FLOORPIC_DEFAULT;
+            }
+        }
+    }
+
+    /*
+    fprintf(stderr,
+            "Linedef: %d; Sector: %d; "
+            "New floor height: %d; New floor pic: %d\n",
+            line->iLineID, pillar_sector->iSectorID,
+            tmp_s3_floorheight >> 16, tmp_s3_floorpic);
+     */
+
+    *s3_floorheight = (fixed_t) tmp_s3_floorheight;
+    *s3_floorpic = (short) tmp_s3_floorpic;
+}
 
 
 //
@@ -1168,26 +1263,67 @@ int EV_DoDonut(line_t*	line)
     int			rtn;
     int			i;
     floormove_t*	floor;
-	
+    fixed_t s3_floorheight;
+    short s3_floorpic;
+
     secnum = -1;
     rtn = 0;
     while ((secnum = P_FindSectorFromLineTag(line,secnum)) >= 0)
     {
 	s1 = &sectors[secnum];
-		
+
 	// ALREADY MOVING?  IF SO, KEEP GOING...
 	if (s1->specialdata)
 	    continue;
-			
+
 	rtn = 1;
 	s2 = getNextSector(s1->lines[0],s1);
-	for (i = 0;i < s2->linecount;i++)
+
+        // Vanilla Doom does not check if the linedef is one sided.  The
+        // game does not crash, but reads invalid memory and causes the
+        // sector floor to move "down" to some unknown height.
+        // DOSbox prints a warning about an invalid memory access.
+        //
+        // I'm not sure exactly what invalid memory is being read.  This
+        // isn't something that should be done, anyway.
+        // Just print a warning and return.
+
+        if (s2 == NULL)
+        {
+            fprintf(stderr,
+                    "EV_DoDonut: linedef had no second sidedef! "
+                    "Unexpected behavior may occur in Vanilla Doom. \n");
+	    break;
+        }
+
+	for (i = 0; i < s2->linecount; i++)
 	{
-	    if ((!(s2->lines[i]->flags & ML_TWOSIDED)) ||
-		(s2->lines[i]->backsector == s1))
-		continue;
 	    s3 = s2->lines[i]->backsector;
-	    
+
+	    if (s3 == s1)
+		continue;
+
+            if (s3 == NULL)
+            {
+                // e6y
+                // s3 is NULL, so
+                // s3->floorheight is an int at 0000:0000
+                // s3->floorpic is a short at 0000:0008
+                // Trying to emulate
+
+                fprintf(stderr,
+                        "EV_DoDonut: WARNING: emulating buffer overrun due to "
+                        "NULL back sector. "
+                        "Unexpected behavior may occur in Vanilla Doom.\n");
+
+                DonutOverrun(&s3_floorheight, &s3_floorpic, line, s1);
+            }
+            else
+            {
+                s3_floorheight = s3->floorheight;
+                s3_floorpic = s3->floorpic;
+            }
+
 	    //	Spawn rising slime
 	    floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
 	    P_AddThinker (&floor->thinker);
@@ -1198,9 +1334,9 @@ int EV_DoDonut(line_t*	line)
 	    floor->direction = 1;
 	    floor->sector = s2;
 	    floor->speed = FLOORSPEED / 2;
-	    floor->texture = s3->floorpic;
+	    floor->texture = s3_floorpic;
 	    floor->newspecial = 0;
-	    floor->floordestheight = s3->floorheight;
+	    floor->floordestheight = s3_floorheight;
 	    
 	    //	Spawn lowering donut-hole
 	    floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
@@ -1212,7 +1348,7 @@ int EV_DoDonut(line_t*	line)
 	    floor->direction = -1;
 	    floor->sector = s1;
 	    floor->speed = FLOORSPEED / 2;
-	    floor->floordestheight = s3->floorheight;
+	    floor->floordestheight = s3_floorheight;
 	    break;
 	}
     }
@@ -1239,32 +1375,19 @@ void P_SpawnSpecials (void)
 {
     sector_t*	sector;
     int		i;
-    //int		episode;
 
-    //episode = 1;
-    if (W_CheckNumForName("texture2") >= 0)
-	//episode = 2;
+    // See if -TIMER was specified.
 
-    
-    // See if -TIMER needs to be used.
-    levelTimer = false;
-	
-    i = M_CheckParm("-avg");
-    if (i && deathmatch)
+    if (timelimit > 0 && deathmatch)
     {
-	levelTimer = true;
-	levelTimeCount = 20 * 60 * 35;
+        levelTimer = true;
+        levelTimeCount = timelimit * 60 * TICRATE;
     }
-	
-    i = M_CheckParm("-timer");
-    if (i && deathmatch)
+    else
     {
-	int	time;
-	time = atoi(myargv[i+1]) * 60 * 35;
-	levelTimer = true;
-	levelTimeCount = time;
+	levelTimer = false;
     }
-    
+
     //	Init special SECTORs.
     sector = sectors;
     for (i=0 ; i<numsectors ; i++, sector++)
@@ -1338,6 +1461,11 @@ void P_SpawnSpecials (void)
 	switch(lines[i].special)
 	{
 	  case 48:
+            if (numlinespecials >= MAXLINEANIMS)
+            {
+                I_Error("Too many scrolling wall linedefs! "
+                        "(Vanilla limit is 64)");
+            }
 	    // EFFECT FIRSTCOL SCROLL+
 	    linespeciallist[numlinespecials] = &lines[i];
 	    numlinespecials++;

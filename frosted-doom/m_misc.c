@@ -1,130 +1,126 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 1993-2008 Raven Software
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
-//	Main loop menu stuff.
-//	Default Config File.
-//	PCX Screenshots.
+//      Miscellaneous.
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: m_misc.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <errno.h>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <io.h>
+#ifdef _MSC_VER
+#include <direct.h>
+#endif
+#else
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <unistd.h>
+#endif
 
-#include <ctype.h>
+#include "doomtype.h"
 
+#include "deh_str.h"
 
-#include "doomdef.h"
-
-#include "z_zone.h"
-
-#include "m_swap.h"
-#include "m_argv.h"
-
-#include "w_wad.h"
-
+#include "i_swap.h"
 #include "i_system.h"
 #include "i_video.h"
-#include "v_video.h"
-
-#include "hu_stuff.h"
-
-// State.
-#include "doomstat.h"
-
-// Data.
-#include "dstrings.h"
-
 #include "m_misc.h"
+#include "v_video.h"
+#include "w_wad.h"
+#include "z_zone.h"
 
 //
-// M_DrawText
-// Returns the final X coordinate
-// HU_Init must have been called to init the font
+// Create a directory
 //
-extern patch_t*		hu_font[HU_FONTSIZE];
 
-int
-M_DrawText
-( int		x,
-  int		y,
-  boolean	direct,
-  char*		string )
+void M_MakeDirectory(char *path)
 {
-    int 	c;
-    int		w;
-
-    while (*string)
-    {
-	c = toupper(*string) - HU_FONTSTART;
-	string++;
-	if (c < 0 || c> HU_FONTSIZE)
-	{
-	    x += 4;
-	    continue;
-	}
-		
-	w = SHORT (hu_font[c]->width);
-	if (x+w > SCREENWIDTH)
-	    break;
-	if (direct)
-	    V_DrawPatchDirect(x, y, 0, hu_font[c]);
-	else
-	    V_DrawPatch(x, y, 0, hu_font[c]);
-	x+=w;
-    }
-
-    return x;
+#ifdef _WIN32
+    mkdir(path);
+#else
+    mkdir(path, 0755);
+#endif
 }
 
+// Check if a file exists
 
+boolean M_FileExists(char *filename)
+{
+    FILE *fstream;
 
+    fstream = fopen(filename, "r");
+
+    if (fstream != NULL)
+    {
+        fclose(fstream);
+        return true;
+    }
+    else
+    {
+        // If we can't open because the file is a directory, the 
+        // "file" exists at least!
+
+        return errno == EISDIR;
+    }
+}
+
+//
+// Determine the length of an open file.
+//
+
+long M_FileLength(FILE *handle)
+{ 
+    long savedpos;
+    long length;
+
+    // save the current position in the file
+    savedpos = ftell(handle);
+    
+    // jump to the end and find the length
+    fseek(handle, 0, SEEK_END);
+    length = ftell(handle);
+
+    // go back to the old location
+    fseek(handle, savedpos, SEEK_SET);
+
+    return length;
+}
 
 //
 // M_WriteFile
 //
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
 
-boolean
-M_WriteFile
-( char const*	name,
-  void*		source,
-  int		length )
+boolean M_WriteFile(char *name, void *source, int length)
 {
-    int		handle;
-    int		count;
+    FILE *handle;
+    int	count;
 	
-    handle = open ( name, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
+    handle = fopen(name, "wb");
 
-    if (handle == -1)
+    if (handle == NULL)
 	return false;
 
-    count = write (handle, source, length);
-    close (handle);
+    count = fwrite(source, 1, length, handle);
+    fclose(handle);
 	
     if (count < length)
 	return false;
@@ -136,24 +132,25 @@ M_WriteFile
 //
 // M_ReadFile
 //
-int
-M_ReadFile
-( char const*	name,
-  byte**	buffer )
+
+int M_ReadFile(char *name, byte **buffer)
 {
-    int	handle, count, length;
-    struct stat	fileinfo;
-    byte		*buf;
+    FILE *handle;
+    int	count, length;
+    byte *buf;
 	
-    handle = open (name, O_RDONLY | O_BINARY, 0666);
-    if (handle == -1)
+    handle = fopen(name, "rb");
+    if (handle == NULL)
 	I_Error ("Couldn't read file %s", name);
-    if (fstat (handle,&fileinfo) == -1)
-	I_Error ("Couldn't read file %s", name);
-    length = fileinfo.st_size;
+
+    // find the size of the file by seeking to the end and
+    // reading the current position
+
+    length = M_FileLength(handle);
+    
     buf = Z_Malloc (length, PU_STATIC, NULL);
-    count = read (handle, buf, length);
-    close (handle);
+    count = fread(buf, 1, length, handle);
+    fclose (handle);
 	
     if (count < length)
 	I_Error ("Couldn't read file %s", name);
@@ -162,373 +159,378 @@ M_ReadFile
     return length;
 }
 
-
+// Returns the path to a temporary file of the given name, stored
+// inside the system temporary directory.
 //
-// DEFAULTS
-//
-int		usemouse;
-int		usejoystick;
+// The returned value must be freed with Z_Free after use.
 
-extern int	key_right;
-extern int	key_left;
-extern int	key_up;
-extern int	key_down;
-
-extern int	key_strafeleft;
-extern int	key_straferight;
-
-extern int	key_fire;
-extern int	key_use;
-extern int	key_strafe;
-extern int	key_speed;
-
-extern int	mousebfire;
-extern int	mousebstrafe;
-extern int	mousebforward;
-
-extern int	joybfire;
-extern int	joybstrafe;
-extern int	joybuse;
-extern int	joybspeed;
-
-extern int	viewwidth;
-extern int	viewheight;
-
-extern int	mouseSensitivity;
-extern int	showMessages;
-
-extern int	detailLevel;
-
-extern int	screenblocks;
-
-extern int	showMessages;
-
-// machine-independent sound params
-extern	int	numChannels;
-
-
-// UNIX hack, to be removed.
-#ifdef SNDSERV
-extern char*	sndserver_filename;
-extern int	mb_used;
-#endif
-
-#ifdef LINUX
-char*		mousetype;
-char*		mousedev;
-#endif
-
-extern char*	chat_macros[];
-
-
-
-typedef struct
+char *M_TempFile(char *s)
 {
-    char*	name;
-    int*	location;
-    int		defaultvalue;
-    int		scantranslate;		// PC scan code hack
-    int		untranslated;		// lousy hack
-} default_t;
+    char *tempdir;
 
-default_t	defaults[] =
-{
-    {"mouse_sensitivity",&mouseSensitivity, 5},
-    {"sfx_volume",&snd_SfxVolume, 8},
-    {"music_volume",&snd_MusicVolume, 8},
-    {"show_messages",&showMessages, 1},
-    
+#ifdef _WIN32
 
-#ifdef NORMALUNIX
-    {"key_right",&key_right, KEY_RIGHTARROW},
-    {"key_left",&key_left, KEY_LEFTARROW},
-    {"key_up",&key_up, KEY_UPARROW},
-    {"key_down",&key_down, KEY_DOWNARROW},
-    {"key_strafeleft",&key_strafeleft, ','},
-    {"key_straferight",&key_straferight, '.'},
+    // Check the TEMP environment variable to find the location.
 
-    {"key_fire",&key_fire, KEY_RCTRL},
-    {"key_use",&key_use, ' '},
-    {"key_strafe",&key_strafe, KEY_RALT},
-    {"key_speed",&key_speed, KEY_RSHIFT},
+    tempdir = getenv("TEMP");
 
-// UNIX hack, to be removed. 
-#ifdef SNDSERV
-    {"sndserver", (int *) &sndserver_filename, (int) "sndserver"},
-    {"mb_used", &mb_used, 2},
-#endif
-    
-#endif
-
-#ifdef LINUX
-    {"mousedev", (int*)&mousedev, (int)"/dev/ttyS0"},
-    {"mousetype", (int*)&mousetype, (int)"microsoft"},
-#endif
-
-    {"use_mouse",&usemouse, 1},
-    {"mouseb_fire",&mousebfire,0},
-    {"mouseb_strafe",&mousebstrafe,1},
-    {"mouseb_forward",&mousebforward,2},
-
-    {"use_joystick",&usejoystick, 0},
-    {"joyb_fire",&joybfire,0},
-    {"joyb_strafe",&joybstrafe,1},
-    {"joyb_use",&joybuse,3},
-    {"joyb_speed",&joybspeed,2},
-
-    {"screenblocks",&screenblocks, 9},
-    {"detaillevel",&detailLevel, 0},
-
-    {"snd_channels",&numChannels, 3},
-
-
-
-    {"usegamma",&usegamma, 0},
-
-    {"chatmacro0", (int *) &chat_macros[0], (int) HUSTR_CHATMACRO0 },
-    {"chatmacro1", (int *) &chat_macros[1], (int) HUSTR_CHATMACRO1 },
-    {"chatmacro2", (int *) &chat_macros[2], (int) HUSTR_CHATMACRO2 },
-    {"chatmacro3", (int *) &chat_macros[3], (int) HUSTR_CHATMACRO3 },
-    {"chatmacro4", (int *) &chat_macros[4], (int) HUSTR_CHATMACRO4 },
-    {"chatmacro5", (int *) &chat_macros[5], (int) HUSTR_CHATMACRO5 },
-    {"chatmacro6", (int *) &chat_macros[6], (int) HUSTR_CHATMACRO6 },
-    {"chatmacro7", (int *) &chat_macros[7], (int) HUSTR_CHATMACRO7 },
-    {"chatmacro8", (int *) &chat_macros[8], (int) HUSTR_CHATMACRO8 },
-    {"chatmacro9", (int *) &chat_macros[9], (int) HUSTR_CHATMACRO9 }
-
-};
-
-int	numdefaults;
-char*	defaultfile;
-
-
-//
-// M_SaveDefaults
-//
-void M_SaveDefaults (void)
-{
-    int		i;
-    int		v;
-    FILE*	f;
-	
-    f = fopen (defaultfile, "w");
-    if (!f)
-	return; // can't write the file, but don't complain
-		
-    for (i=0 ; i<numdefaults ; i++)
+    if (tempdir == NULL)
     {
-	if (defaults[i].defaultvalue > -0xfff
-	    && defaults[i].defaultvalue < 0xfff)
-	{
-	    v = *defaults[i].location;
-	    fprintf (f,"%s\t\t%i\n",defaults[i].name,v);
-	} else {
-	    fprintf (f,"%s\t\t\"%s\"\n",defaults[i].name,
-		     * (char **) (defaults[i].location));
-	}
+        tempdir = ".";
     }
-	
-    fclose (f);
+#else
+    // In Unix, just use /tmp.
+
+    tempdir = "/tmp";
+#endif
+
+    return M_StringJoin(tempdir, DIR_SEPARATOR_S, s, NULL);
 }
 
-
-//
-// M_LoadDefaults
-//
-extern byte	scantokey[128];
-
-void M_LoadDefaults (void)
+boolean M_StrToInt(const char *str, int *result)
 {
-    int		i;
-    int		len;
-    FILE*	f;
-    char	def[80];
-    char	strparm[100];
-    char*	newstring;
-    int		parm;
-    boolean	isstring;
-    
-    // set everything to base values
-    numdefaults = sizeof(defaults)/sizeof(defaults[0]);
-    for (i=0 ; i<numdefaults ; i++)
-	*defaults[i].location = defaults[i].defaultvalue;
-    
-    // check for a custom default file
-    i = M_CheckParm ("-config");
-    if (i && i<myargc-1)
+    return sscanf(str, " 0x%x", result) == 1
+        || sscanf(str, " 0X%x", result) == 1
+        || sscanf(str, " 0%o", result) == 1
+        || sscanf(str, " %d", result) == 1;
+}
+
+void M_ExtractFileBase(char *path, char *dest)
+{
+    char *src;
+    char *filename;
+    int length;
+
+    src = path + strlen(path) - 1;
+
+    // back up until a \ or the start
+    while (src != path && *(src - 1) != DIR_SEPARATOR)
     {
-	defaultfile = myargv[i+1];
-	printf ("	default file: %s\n",defaultfile);
+	src--;
+    }
+
+    filename = src;
+
+    // Copy up to eight characters
+    // Note: Vanilla Doom exits with an error if a filename is specified
+    // with a base of more than eight characters.  To remove the 8.3
+    // filename limit, instead we simply truncate the name.
+
+    length = 0;
+    memset(dest, 0, 8);
+
+    while (*src != '\0' && *src != '.')
+    {
+        if (length >= 8)
+        {
+            printf("Warning: Truncated '%s' lump name to '%.8s'.\n",
+                   filename, dest);
+            break;
+        }
+
+	dest[length++] = toupper((int)*src++);
+    }
+}
+
+//---------------------------------------------------------------------------
+//
+// PROC M_ForceUppercase
+//
+// Change string to uppercase.
+//
+//---------------------------------------------------------------------------
+
+void M_ForceUppercase(char *text)
+{
+    char *p;
+
+    for (p = text; *p != '\0'; ++p)
+    {
+        *p = toupper(*p);
+    }
+}
+
+//
+// M_StrCaseStr
+//
+// Case-insensitive version of strstr()
+//
+
+char *M_StrCaseStr(char *haystack, char *needle)
+{
+    unsigned int haystack_len;
+    unsigned int needle_len;
+    unsigned int len;
+    unsigned int i;
+
+    haystack_len = strlen(haystack);
+    needle_len = strlen(needle);
+
+    if (haystack_len < needle_len)
+    {
+        return NULL;
+    }
+
+    len = haystack_len - needle_len;
+
+    for (i = 0; i <= len; ++i)
+    {
+        if (!strncasecmp(haystack + i, needle, needle_len))
+        {
+            return haystack + i;
+        }
+    }
+
+    return NULL;
+}
+
+//
+// Safe version of strdup() that checks the string was successfully
+// allocated.
+//
+
+char *M_StringDuplicate(const char *orig)
+{
+    char *result;
+
+    result = strdup(orig);
+
+    if (result == NULL)
+    {
+        I_Error("Failed to duplicate string (length %i)\n",
+                strlen(orig));
+    }
+
+    return result;
+}
+
+//
+// String replace function.
+//
+
+char *M_StringReplace(const char *haystack, const char *needle,
+                      const char *replacement)
+{
+    char *result, *dst;
+    const char *p;
+    size_t needle_len = strlen(needle);
+    size_t result_len, dst_len;
+
+    // Iterate through occurrences of 'needle' and calculate the size of
+    // the new string.
+    result_len = strlen(haystack) + 1;
+    p = haystack;
+
+    for (;;)
+    {
+        p = strstr(p, needle);
+        if (p == NULL)
+        {
+            break;
+        }
+
+        p += needle_len;
+        result_len += strlen(replacement) - needle_len;
+    }
+
+    // Construct new string.
+
+    result = malloc(result_len);
+    if (result == NULL)
+    {
+        I_Error("M_StringReplace: Failed to allocate new string");
+        return NULL;
+    }
+
+    dst = result; dst_len = result_len;
+    p = haystack;
+
+    while (*p != '\0')
+    {
+        if (!strncmp(p, needle, needle_len))
+        {
+            M_StringCopy(dst, replacement, dst_len);
+            p += needle_len;
+            dst += strlen(replacement);
+            dst_len -= strlen(replacement);
+        }
+        else
+        {
+            *dst = *p;
+            ++dst; --dst_len;
+            ++p;
+        }
+    }
+
+    *dst = '\0';
+
+    return result;
+}
+
+// Safe string copy function that works like OpenBSD's strlcpy().
+// Returns true if the string was not truncated.
+
+boolean M_StringCopy(char *dest, const char *src, size_t dest_size)
+{
+    size_t len;
+
+    if (dest_size >= 1)
+    {
+        dest[dest_size - 1] = '\0';
+        strncpy(dest, src, dest_size - 1);
     }
     else
-	defaultfile = basedefault;
-    
-    // read the file in, overriding any set defaults
-    f = fopen (defaultfile, "r");
-    if (f)
     {
-	while (!feof(f))
-	{
-	    isstring = false;
-	    if (fscanf (f, "%79s %[^\n]\n", def, strparm) == 2)
-	    {
-		if (strparm[0] == '"')
-		{
-		    // get a string default
-		    isstring = true;
-		    len = strlen(strparm);
-		    newstring = (char *) malloc(len);
-		    strparm[len-1] = 0;
-		    strcpy(newstring, strparm+1);
-		}
-		else if (strparm[0] == '0' && strparm[1] == 'x')
-		    sscanf(strparm+2, "%x", &parm);
-		else
-		    sscanf(strparm, "%i", &parm);
-		for (i=0 ; i<numdefaults ; i++)
-		    if (!strcmp(def, defaults[i].name))
-		    {
-			if (!isstring)
-			    *defaults[i].location = parm;
-			else
-			    *defaults[i].location =
-				(int) newstring;
-			break;
-		    }
-	    }
-	}
-		
-	fclose (f);
+        return false;
     }
+
+    len = strlen(dest);
+    return src[len] == '\0';
 }
 
+// Safe string concat function that works like OpenBSD's strlcat().
+// Returns true if string not truncated.
 
-//
-// SCREEN SHOTS
-//
-
-
-typedef struct
+boolean M_StringConcat(char *dest, const char *src, size_t dest_size)
 {
-    char		manufacturer;
-    char		version;
-    char		encoding;
-    char		bits_per_pixel;
+    size_t offset;
 
-    unsigned short	xmin;
-    unsigned short	ymin;
-    unsigned short	xmax;
-    unsigned short	ymax;
-    
-    unsigned short	hres;
-    unsigned short	vres;
-
-    unsigned char	palette[48];
-    
-    char		reserved;
-    char		color_planes;
-    unsigned short	bytes_per_line;
-    unsigned short	palette_type;
-    
-    char		filler[58];
-    unsigned char	data;		// unbounded
-} pcx_t;
-
-
-//
-// WritePCXfile
-//
-void
-WritePCXfile
-( char*		filename,
-  byte*		data,
-  int		width,
-  int		height,
-  byte*		palette )
-{
-    int		i;
-    int		length;
-    pcx_t*	pcx;
-    byte*	pack;
-	
-    pcx = Z_Malloc (width*height*2+1000, PU_STATIC, NULL);
-
-    pcx->manufacturer = 0x0a;		// PCX id
-    pcx->version = 5;			// 256 color
-    pcx->encoding = 1;			// uncompressed
-    pcx->bits_per_pixel = 8;		// 256 color
-    pcx->xmin = 0;
-    pcx->ymin = 0;
-    pcx->xmax = SHORT(width-1);
-    pcx->ymax = SHORT(height-1);
-    pcx->hres = SHORT(width);
-    pcx->vres = SHORT(height);
-    memset (pcx->palette,0,sizeof(pcx->palette));
-    pcx->color_planes = 1;		// chunky image
-    pcx->bytes_per_line = SHORT(width);
-    pcx->palette_type = SHORT(2);	// not a grey scale
-    memset (pcx->filler,0,sizeof(pcx->filler));
-
-
-    // pack the image
-    pack = &pcx->data;
-	
-    for (i=0 ; i<width*height ; i++)
+    offset = strlen(dest);
+    if (offset > dest_size)
     {
-	if ( (*data & 0xc0) != 0xc0)
-	    *pack++ = *data++;
-	else
-	{
-	    *pack++ = 0xc1;
-	    *pack++ = *data++;
-	}
+        offset = dest_size;
     }
-    
-    // write the palette
-    *pack++ = 0x0c;	// palette ID byte
-    for (i=0 ; i<768 ; i++)
-	*pack++ = *palette++;
-    
-    // write output file
-    length = pack - (byte *)pcx;
-    M_WriteFile (filename, pcx, length);
 
-    Z_Free (pcx);
+    return M_StringCopy(dest + offset, src, dest_size - offset);
 }
 
+// Returns true if 's' begins with the specified prefix.
 
-//
-// M_ScreenShot
-//
-void M_ScreenShot (void)
+boolean M_StringStartsWith(const char *s, const char *prefix)
 {
-    int		i;
-    byte*	linear;
-    char	lbmname[12];
-    
-    // munge planar buffer to linear
-    linear = screens[2];
-    I_ReadScreen (linear);
-    
-    // find a file name to save it to
-    strcpy(lbmname,"DOOM00.pcx");
-		
-    for (i=0 ; i<=99 ; i++)
-    {
-	lbmname[4] = i/10 + '0';
-	lbmname[5] = i%10 + '0';
-	if (access(lbmname,0) == -1)
-	    break;	// file doesn't exist
-    }
-    if (i==100)
-	I_Error ("M_ScreenShot: Couldn't create a PCX");
-    
-    // save the pcx file
-    WritePCXfile (lbmname, linear,
-		  SCREENWIDTH, SCREENHEIGHT,
-		  W_CacheLumpName ("PLAYPAL",PU_CACHE));
-	
-    players[consoleplayer].message = "screen shot";
+    return strlen(s) > strlen(prefix)
+        && strncmp(s, prefix, strlen(prefix)) == 0;
 }
 
+// Returns true if 's' ends with the specified suffix.
+
+boolean M_StringEndsWith(const char *s, const char *suffix)
+{
+    return strlen(s) >= strlen(suffix)
+        && strcmp(s + strlen(s) - strlen(suffix), suffix) == 0;
+}
+
+// Return a newly-malloced string with all the strings given as arguments
+// concatenated together.
+
+char *M_StringJoin(const char *s, ...)
+{
+    char *result;
+    const char *v;
+    va_list args;
+    size_t result_len;
+
+    result_len = strlen(s) + 1;
+
+    va_start(args, s);
+    for (;;)
+    {
+        v = va_arg(args, const char *);
+        if (v == NULL)
+        {
+            break;
+        }
+
+        result_len += strlen(v);
+    }
+    va_end(args);
+
+    result = malloc(result_len);
+
+    if (result == NULL)
+    {
+        I_Error("M_StringJoin: Failed to allocate new string.");
+        return NULL;
+    }
+
+    M_StringCopy(result, s, result_len);
+
+    va_start(args, s);
+    for (;;)
+    {
+        v = va_arg(args, const char *);
+        if (v == NULL)
+        {
+            break;
+        }
+
+        M_StringConcat(result, v, result_len);
+    }
+    va_end(args);
+
+    return result;
+}
+
+// On Windows, vsnprintf() is _vsnprintf().
+#ifdef _WIN32
+#if _MSC_VER < 1400 /* not needed for Visual Studio 2008 */
+#define vsnprintf _vsnprintf
+#endif
+#endif
+
+// Safe, portable vsnprintf().
+int M_vsnprintf(char *buf, size_t buf_len, const char *s, va_list args)
+{
+    int result;
+
+    if (buf_len < 1)
+    {
+        return 0;
+    }
+
+    // Windows (and other OSes?) has a vsnprintf() that doesn't always
+    // append a trailing \0. So we must do it, and write into a buffer
+    // that is one byte shorter; otherwise this function is unsafe.
+    result = vsnprintf(buf, buf_len, s, args);
+
+    // If truncated, change the final char in the buffer to a \0.
+    // A negative result indicates a truncated buffer on Windows.
+    if (result < 0 || result >= buf_len)
+    {
+        buf[buf_len - 1] = '\0';
+        result = buf_len - 1;
+    }
+
+    return result;
+}
+
+// Safe, portable snprintf().
+int M_snprintf(char *buf, size_t buf_len, const char *s, ...)
+{
+    va_list args;
+    int result;
+    va_start(args, s);
+    result = M_vsnprintf(buf, buf_len, s, args);
+    va_end(args);
+    return result;
+}
+
+#ifdef _WIN32
+
+char *M_OEMToUTF8(const char *oem)
+{
+    unsigned int len = strlen(oem) + 1;
+    wchar_t *tmp;
+    char *result;
+
+    tmp = malloc(len * sizeof(wchar_t));
+    MultiByteToWideChar(CP_OEMCP, 0, oem, len, tmp, len);
+    result = malloc(len * 4);
+    WideCharToMultiByte(CP_UTF8, 0, tmp, len, result, len * 4, NULL, NULL);
+    free(tmp);
+
+    return result;
+}
+
+#endif
 

@@ -1,38 +1,36 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:  Heads-up displays
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: hu_stuff.c,v 1.4 1997/02/03 16:47:52 b1 Exp $";
 
 #include <ctype.h>
 
 #include "doomdef.h"
+#include "doomkeys.h"
 
 #include "z_zone.h"
 
-#include "m_swap.h"
+#include "deh_main.h"
+#include "i_swap.h"
+#include "i_video.h"
 
 #include "hu_stuff.h"
 #include "hu_lib.h"
+#include "m_controls.h"
+#include "m_misc.h"
 #include "w_wad.h"
 
 #include "s_sound.h"
@@ -47,9 +45,10 @@ rcsid[] = "$Id: hu_stuff.c,v 1.4 1997/02/03 16:47:52 b1 Exp $";
 // Locally used constants, shortcuts.
 //
 #define HU_TITLE	(mapnames[(gameepisode-1)*9+gamemap-1])
-#define HU_TITLE2	(mapnames2[gamemap-1])
-#define HU_TITLEP	(mapnamesp[gamemap-1])
-#define HU_TITLET	(mapnamest[gamemap-1])
+#define HU_TITLE2	(mapnames_commercial[gamemap-1])
+#define HU_TITLEP	(mapnames_commercial[gamemap-1 + 32])
+#define HU_TITLET	(mapnames_commercial[gamemap-1 + 64])
+#define HU_TITLE_CHEX   (mapnames[gamemap - 1])
 #define HU_TITLEHEIGHT	1
 #define HU_TITLEX	0
 #define HU_TITLEY	(167 - SHORT(hu_font[0]->height))
@@ -62,7 +61,7 @@ rcsid[] = "$Id: hu_stuff.c,v 1.4 1997/02/03 16:47:52 b1 Exp $";
 
 
 
-char*	chat_macros[] =
+char *chat_macros[10] =
 {
     HUSTR_CHATMACRO0,
     HUSTR_CHATMACRO1,
@@ -84,7 +83,6 @@ char*	player_names[] =
     HUSTR_PLRRED
 };
 
-
 char			chat_char; // remove later.
 static player_t*	plr;
 patch_t*		hu_font[HU_FONTSIZE];
@@ -103,7 +101,6 @@ static hu_stext_t	w_message;
 static int		message_counter;
 
 extern int		showMessages;
-extern boolean		automapactive;
 
 static boolean		headsupactive = false;
 
@@ -166,8 +163,16 @@ char*	mapnames[] =	// DOOM shareware/registered/retail (Ultimate) names.
     "NEWLEVEL"
 };
 
-char*	mapnames2[] =	// DOOM 2 map names.
+// List of names for levels in commercial IWADs
+// (doom2.wad, plutonia.wad, tnt.wad).  These are stored in a
+// single large array; WADs like pl2.wad have a MAP33, and rely on
+// the layout in the Vanilla executable, where it is possible to
+// overflow the end of one array into the next.
+
+char *mapnames_commercial[] =
 {
+    // DOOM 2 map names.
+
     HUSTR_1,
     HUSTR_2,
     HUSTR_3,
@@ -201,12 +206,10 @@ char*	mapnames2[] =	// DOOM 2 map names.
     HUSTR_29,
     HUSTR_30,
     HUSTR_31,
-    HUSTR_32
-};
+    HUSTR_32,
 
+    // Plutonia WAD map names.
 
-char*	mapnamesp[] =	// Plutonia WAD map names.
-{
     PHUSTR_1,
     PHUSTR_2,
     PHUSTR_3,
@@ -240,12 +243,10 @@ char*	mapnamesp[] =	// Plutonia WAD map names.
     PHUSTR_29,
     PHUSTR_30,
     PHUSTR_31,
-    PHUSTR_32
-};
+    PHUSTR_32,
+    
+    // TNT WAD map names.
 
-
-char *mapnamest[] =	// TNT WAD map names.
-{
     THUSTR_1,
     THUSTR_2,
     THUSTR_3,
@@ -282,113 +283,6 @@ char *mapnamest[] =	// TNT WAD map names.
     THUSTR_32
 };
 
-
-const char*	shiftxform;
-
-const char french_shiftxform[] =
-{
-    0,
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-    31,
-    ' ', '!', '"', '#', '$', '%', '&',
-    '"', // shift-'
-    '(', ')', '*', '+',
-    '?', // shift-,
-    '_', // shift--
-    '>', // shift-.
-    '?', // shift-/
-    '0', // shift-0
-    '1', // shift-1
-    '2', // shift-2
-    '3', // shift-3
-    '4', // shift-4
-    '5', // shift-5
-    '6', // shift-6
-    '7', // shift-7
-    '8', // shift-8
-    '9', // shift-9
-    '/',
-    '.', // shift-;
-    '<',
-    '+', // shift-=
-    '>', '?', '@',
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-    'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    '[', // shift-[
-    '!', // shift-backslash - OH MY GOD DOES WATCOM SUCK
-    ']', // shift-]
-    '"', '_',
-    '\'', // shift-`
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-    'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    '{', '|', '}', '~', 127
-
-};
-
-const char english_shiftxform[] =
-{
-
-    0,
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-    31,
-    ' ', '!', '"', '#', '$', '%', '&',
-    '"', // shift-'
-    '(', ')', '*', '+',
-    '<', // shift-,
-    '_', // shift--
-    '>', // shift-.
-    '?', // shift-/
-    ')', // shift-0
-    '!', // shift-1
-    '@', // shift-2
-    '#', // shift-3
-    '$', // shift-4
-    '%', // shift-5
-    '^', // shift-6
-    '&', // shift-7
-    '*', // shift-8
-    '(', // shift-9
-    ':',
-    ':', // shift-;
-    '<',
-    '+', // shift-=
-    '>', '?', '@',
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-    'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    '[', // shift-[
-    '!', // shift-backslash - OH MY GOD DOES WATCOM SUCK
-    ']', // shift-]
-    '"', '_',
-    '\'', // shift-`
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-    'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    '{', '|', '}', '~', 127
-};
-
-char frenchKeyMap[128]=
-{
-    0,
-    1,2,3,4,5,6,7,8,9,10,
-    11,12,13,14,15,16,17,18,19,20,
-    21,22,23,24,25,26,27,28,29,30,
-    31,
-    ' ','!','"','#','$','%','&','%','(',')','*','+',';','-',':','!',
-    '0','1','2','3','4','5','6','7','8','9',':','M','<','=','>','?',
-    '@','Q','B','C','D','E','F','G','H','I','J','K','L',',','N','O',
-    'P','A','R','S','T','U','V','Z','X','Y','W','^','\\','$','^','_',
-    '@','Q','B','C','D','E','F','G','H','I','J','K','L',',','N','O',
-    'P','A','R','S','T','U','V','Z','X','Y','W','^','\\','$','^',127
-};
-
-char ForeignTranslation(unsigned char ch)
-{
-    return ch < 128 ? frenchKeyMap[ch] : ch;
-}
-
 void HU_Init(void)
 {
 
@@ -396,16 +290,11 @@ void HU_Init(void)
     int		j;
     char	buffer[9];
 
-    if (french)
-	shiftxform = french_shiftxform;
-    else
-	shiftxform = english_shiftxform;
-
     // load the heads-up font
     j = HU_FONTSTART;
     for (i=0;i<HU_FONTSIZE;i++)
     {
-	sprintf(buffer, "STCFN%.3d", j++);
+	DEH_snprintf(buffer, 9, "STCFN%.3d", j++);
 	hu_font[i] = (patch_t *) W_CacheLumpName(buffer, PU_STATIC);
     }
 
@@ -443,28 +332,36 @@ void HU_Start(void)
 		       hu_font,
 		       HU_FONTSTART);
     
-    switch ( gamemode )
+    switch ( logical_gamemission )
     {
-      case shareware:
-      case registered:
-      case retail:
+      case doom:
 	s = HU_TITLE;
 	break;
-
-/* FIXME
+      case doom2:
+	 s = HU_TITLE2;
+	 break;
       case pack_plut:
 	s = HU_TITLEP;
 	break;
       case pack_tnt:
 	s = HU_TITLET;
 	break;
-*/
-	
-      case commercial:
       default:
-	 s = HU_TITLE2;
-	 break;
+         s = "Unknown level";
+         break;
     }
+
+    // Chex.exe always uses the episode 1 level title
+    // eg. E2M1 gives the title for E1M1
+
+    if (gameversion == exe_chex)
+    {
+        s = HU_TITLE_CHEX;
+    }
+
+    // dehacked substitution to get modified level name
+
+    s = DEH_String(s);
     
     while (*s)
 	HUlib_addCharToTextLine(&w_title, *(s++));
@@ -546,8 +443,6 @@ void HU_Ticker(void)
 		    chat_dest[i] = c;
 		else
 		{
-		    if (c >= 'a' && c <= 'z')
-			c = (char) shiftxform[(unsigned char) c];
 		    rc = HUlib_keyInIText(&w_inputbuffer[i], c);
 		    if (rc && c == KEY_ENTER)
 		    {
@@ -556,7 +451,7 @@ void HU_Ticker(void)
 				|| chat_dest[i] == HU_BROADCAST))
 			{
 			    HUlib_addMessageToSText(&w_message,
-						    player_names[i],
+						    DEH_String(player_names[i]),
 						    w_inputbuffer[i].l.l);
 			    
 			    message_nottobefuckedwith = true;
@@ -588,7 +483,7 @@ void HU_queueChatChar(char c)
 {
     if (((head + 1) & (QUEUESIZE-1)) == tail)
     {
-	plr->message = HUSTR_MSGU;
+	plr->message = DEH_String(HUSTR_MSGU);
     }
     else
     {
@@ -620,19 +515,10 @@ boolean HU_Responder(event_t *ev)
     static char		lastmessage[HU_MAXLINELENGTH+1];
     char*		macromessage;
     boolean		eatkey = false;
-    static boolean	shiftdown = false;
     static boolean	altdown = false;
     unsigned char 	c;
     int			i;
     int			numplayers;
-    
-    static char		destination_keys[MAXPLAYERS] =
-    {
-	HUSTR_KEYGREEN,
-	HUSTR_KEYINDIGO,
-	HUSTR_KEYBROWN,
-	HUSTR_KEYRED
-    };
     
     static int		num_nobrainers = 0;
 
@@ -642,7 +528,6 @@ boolean HU_Responder(event_t *ev)
 
     if (ev->data1 == KEY_RSHIFT)
     {
-	shiftdown = ev->type == ev_keydown;
 	return false;
     }
     else if (ev->data1 == KEY_RALT || ev->data1 == KEY_LALT)
@@ -656,13 +541,13 @@ boolean HU_Responder(event_t *ev)
 
     if (!chat_on)
     {
-	if (ev->data1 == HU_MSGREFRESH)
+	if (ev->data1 == key_message_refresh)
 	{
 	    message_on = true;
 	    message_counter = HU_MSGTIMEOUT;
 	    eatkey = true;
 	}
-	else if (netgame && ev->data1 == HU_INPUTTOGGLE)
+	else if (netgame && ev->data2 == key_multi_msg)
 	{
 	    eatkey = chat_on = true;
 	    HUlib_resetIText(&w_chat);
@@ -672,7 +557,7 @@ boolean HU_Responder(event_t *ev)
 	{
 	    for (i=0; i<MAXPLAYERS ; i++)
 	    {
-		if (ev->data1 == destination_keys[i])
+		if (ev->data2 == key_multi_msgplayer[i])
 		{
 		    if (playeringame[i] && i!=consoleplayer)
 		    {
@@ -685,15 +570,15 @@ boolean HU_Responder(event_t *ev)
 		    {
 			num_nobrainers++;
 			if (num_nobrainers < 3)
-			    plr->message = HUSTR_TALKTOSELF1;
+			    plr->message = DEH_String(HUSTR_TALKTOSELF1);
 			else if (num_nobrainers < 6)
-			    plr->message = HUSTR_TALKTOSELF2;
+			    plr->message = DEH_String(HUSTR_TALKTOSELF2);
 			else if (num_nobrainers < 9)
-			    plr->message = HUSTR_TALKTOSELF3;
+			    plr->message = DEH_String(HUSTR_TALKTOSELF3);
 			else if (num_nobrainers < 32)
-			    plr->message = HUSTR_TALKTOSELF4;
+			    plr->message = DEH_String(HUSTR_TALKTOSELF4);
 			else
-			    plr->message = HUSTR_TALKTOSELF5;
+			    plr->message = DEH_String(HUSTR_TALKTOSELF5);
 		    }
 		}
 	    }
@@ -701,11 +586,10 @@ boolean HU_Responder(event_t *ev)
     }
     else
     {
-	c = ev->data1;
 	// send a macro
 	if (altdown)
 	{
-	    c = c - '0';
+	    c = ev->data1 - '0';
 	    if (c > 9)
 		return false;
 	    // fprintf(stderr, "got here\n");
@@ -719,35 +603,33 @@ boolean HU_Responder(event_t *ev)
 		HU_queueChatChar(*macromessage++);
 	    HU_queueChatChar(KEY_ENTER);
 	    
-	    // leave chat mode and notify that it was sent
-	    chat_on = false;
-	    strcpy(lastmessage, chat_macros[c]);
-	    plr->message = lastmessage;
-	    eatkey = true;
+            // leave chat mode and notify that it was sent
+            chat_on = false;
+            M_StringCopy(lastmessage, chat_macros[c], sizeof(lastmessage));
+            plr->message = lastmessage;
+            eatkey = true;
 	}
 	else
 	{
-	    if (french)
-		c = ForeignTranslation(c);
-	    if (shiftdown || (c >= 'a' && c <= 'z'))
-		c = shiftxform[c];
+            c = ev->data2;
+
 	    eatkey = HUlib_keyInIText(&w_chat, c);
 	    if (eatkey)
 	    {
 		// static unsigned char buf[20]; // DEBUG
 		HU_queueChatChar(c);
 		
-		// sprintf(buf, "KEY: %d => %d", ev->data1, c);
-		//      plr->message = buf;
+		// M_snprintf(buf, sizeof(buf), "KEY: %d => %d", ev->data1, c);
+		//        plr->message = buf;
 	    }
 	    if (c == KEY_ENTER)
 	    {
 		chat_on = false;
-		if (w_chat.l.len)
-		{
-		    strcpy(lastmessage, w_chat.l.l);
-		    plr->message = lastmessage;
-		}
+                if (w_chat.l.len)
+                {
+                    M_StringCopy(lastmessage, w_chat.l.l, sizeof(lastmessage));
+                    plr->message = lastmessage;
+                }
 	    }
 	    else if (c == KEY_ESCAPE)
 		chat_on = false;

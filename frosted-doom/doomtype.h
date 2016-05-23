@@ -1,66 +1,103 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Simple basic typedefs, isolated here to make it easier
 //	 separating modules.
 //    
-//-----------------------------------------------------------------------------
 
 
 #ifndef __DOOMTYPE__
 #define __DOOMTYPE__
 
+// #define macros to provide functions missing in Windows.
+// Outside Windows, we use strings.h for str[n]casecmp.
 
-#ifndef __BYTEBOOL__
-#define __BYTEBOOL__
-// Fixed to use builtin bool type with C++.
+
+#ifdef _WIN32
+
+#define strcasecmp stricmp
+#define strncasecmp strnicmp
+
+#else
+
+#include <strings.h>
+
+#endif
+
+
+//
+// The packed attribute forces structures to be packed into the minimum 
+// space necessary.  If this is not done, the compiler may align structure
+// fields differently to optimize memory access, inflating the overall
+// structure size.  It is important to use the packed attribute on certain
+// structures where alignment is important, particularly data read/written
+// to disk.
+//
+
+#ifdef __GNUC__
+#define PACKEDATTR __attribute__((packed))
+#else
+#define PACKEDATTR
+#endif
+
+// C99 integer types; with gcc we just use this.  Other compilers 
+// should add conditional statements that define the C99 types.
+
+// What is really wanted here is stdint.h; however, some old versions
+// of Solaris don't have stdint.h and only have inttypes.h (the 
+// pre-standardisation version).  inttypes.h is also in the C99 
+// standard and defined to include stdint.h, so include this. 
+
+#include <inttypes.h>
+
 #ifdef __cplusplus
+
+// Use builtin bool type with C++.
+
 typedef bool boolean;
+
 #else
-typedef enum {false, true} boolean;
-#endif
-typedef unsigned char byte;
+
+typedef enum 
+{
+    false	= 0,
+    true	= 1,
+	undef	= 0xFFFFFFFF
+} boolean;
+
 #endif
 
+typedef uint8_t byte;
 
-// Predefined with some OS.
-#ifdef LINUX
-#include <values.h>
+#include <limits.h>
+
+#ifdef _WIN32
+
+#define DIR_SEPARATOR '\\'
+#define DIR_SEPARATOR_S "\\"
+#define PATH_SEPARATOR ';'
+
 #else
-#define MAXCHAR		((char)0x7f)
-#define MAXSHORT	((short)0x7fff)
 
-// Max pos 32-bit int.
-#define MAXINT		((int)0x7fffffff)	
-#define MAXLONG		((long)0x7fffffff)
-#define MINCHAR		((char)0x80)
-#define MINSHORT	((short)0x8000)
-
-// Max negative 32-bit integer.
-#define MININT		((int)0x80000000)	
-#define MINLONG		((long)0x80000000)
-#endif
-
-
-
+#define DIR_SEPARATOR '/'
+#define DIR_SEPARATOR_S "/"
+#define PATH_SEPARATOR ':'
 
 #endif
-//-----------------------------------------------------------------------------
-//
-// $Log:$
-//
-//-----------------------------------------------------------------------------
+
+#define arrlen(array) (sizeof(array) / sizeof(*array))
+
+#endif
+

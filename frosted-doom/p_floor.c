@@ -1,28 +1,21 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Floor animation: raising stairs.
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: p_floor.c,v 1.4 1997/02/03 16:47:54 b1 Exp $";
 
 
 #include "z_zone.h"
@@ -216,8 +209,7 @@ void T_MoveFloor(floormove_t* floor)
 		      floor->crush,0,floor->direction);
     
     if (!(leveltime&7))
-	S_StartSound((mobj_t *)&floor->sector->soundorg,
-		     sfx_stnmov);
+	S_StartSound(&floor->sector->soundorg, sfx_stnmov);
     
     if (res == pastdest)
     {
@@ -247,8 +239,7 @@ void T_MoveFloor(floormove_t* floor)
 	}
 	P_RemoveThinker(&floor->thinker);
 
-	S_StartSound((mobj_t *)&floor->sector->soundorg,
-		     sfx_pstop);
+	S_StartSound(&floor->sector->soundorg, sfx_pstop);
     }
 
 }
@@ -371,7 +362,7 @@ EV_DoFloor
 
 	  case raiseToTexture:
 	  {
-	      int	minsize = MAXINT;
+	      int	minsize = INT_MAX;
 	      side_t*	side;
 				
 	      floor->direction = 1;
@@ -467,8 +458,8 @@ EV_BuildStairs
 
     floormove_t*	floor;
     
-    fixed_t		stairsize;
-    fixed_t		speed;
+    fixed_t		stairsize = 0;
+    fixed_t		speed = 0;
 
     secnum = -1;
     rtn = 0;

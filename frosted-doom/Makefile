@@ -15,7 +15,7 @@ endif
 
 ifeq ($(ARM),1)
 	CROSS_COMPILE = arm-frosted-eabi-
-	OBJS+=$(O)/i_video_fbdev.o
+	OBJS+=$(OBJDIR)/i_video_fbdev.o
 	CFLAGS+=-mthumb -mlittle-endian -mthumb-interwork -ffunction-sections -fdata-sections -mcpu=cortex-m3
 	CFLAGS+=-DCORE_M3 -D__frosted__
 	# COMPILER FLAGS -- No gcc libraries
@@ -26,108 +26,50 @@ ifeq ($(ARM),1)
 	LDFLAGS+=-fPIC -mlong-calls -fno-common -Wl,-elf2flt -lgloss
 else
 	CFLAGS+=-m32 -fsanitize=address -Wunused-const-variable=0 
-	LIBS+=-lXext -lX11 -lnsl -lm -lSDL2
-	OBJS+=$(O)/i_video_SDL.o
+	LIBS+=-lXext -lX11 -lnsl -lm -lSDL
+	OBJS+=$(OBJDIR)/i_video.o
 endif
 
 CC=  $(CROSS_COMPILE)gcc  # gcc or g++
-
-
-# Debugging
-CFLAGS+=-ggdb3
+CFLAGS+=-ggdb3 -Os
 LDFLAGS+=-Wl,--gc-sections
 CFLAGS+=-ggdb3 -Wall -DNORMALUNIX -DLINUX -DSNDSERV # -DUSEASM
-CFLAGS+=-Icompat
 LIBS+=-lm -lc
 
-#LDFLAGS=-L/usr/X11R6/lib
-#LIBS=-lXext -lX11 -lnsl -lm
-
 # subdirectory for objects
-O=frosted
+OBJDIR=build
+OUTPUT=fdoom
 
-# not too sophisticated dependency
-OBJS+=				\
-		$(O)/stubs.o		\
-		$(O)/doomdef.o		\
-		$(O)/doomstat.o		\
-		$(O)/dstrings.o		\
-		$(O)/i_system.o		\
-		$(O)/i_sound_dummy.o          \
-		$(O)/i_net.o                    \
-		$(O)/tables.o			\
-		$(O)/f_finale.o		\
-		$(O)/f_wipe.o 		\
-		$(O)/d_main.o			\
-		$(O)/d_net.o			\
-		$(O)/d_items.o		\
-		$(O)/g_game.o			\
-		$(O)/m_menu.o			\
-		$(O)/m_misc.o			\
-		$(O)/m_argv.o  		\
-		$(O)/m_bbox.o			\
-		$(O)/m_fixed.o		\
-		$(O)/m_swap.o			\
-		$(O)/m_cheat.o		\
-		$(O)/m_random.o		\
-		$(O)/am_map.o			\
-		$(O)/p_ceilng.o		\
-		$(O)/p_doors.o		\
-		$(O)/p_enemy.o		\
-		$(O)/p_floor.o		\
-		$(O)/p_inter.o		\
-		$(O)/p_lights.o		\
-		$(O)/p_map.o			\
-		$(O)/p_maputl.o		\
-		$(O)/p_plats.o		\
-		$(O)/p_pspr.o			\
-		$(O)/p_setup.o		\
-		$(O)/p_sight.o		\
-		$(O)/p_spec.o			\
-		$(O)/p_switch.o		\
-		$(O)/p_mobj.o			\
-		$(O)/p_telept.o		\
-		$(O)/p_tick.o			\
-		$(O)/p_saveg.o		\
-		$(O)/p_user.o			\
-		$(O)/r_bsp.o			\
-		$(O)/r_data.o			\
-		$(O)/r_draw.o			\
-		$(O)/r_main.o			\
-		$(O)/r_plane.o		\
-		$(O)/r_segs.o			\
-		$(O)/r_sky.o			\
-		$(O)/r_things.o		\
-		$(O)/w_wad.o			\
-		$(O)/wi_stuff.o		\
-		$(O)/v_video.o		\
-		$(O)/st_lib.o			\
-		$(O)/st_stuff.o		\
-		$(O)/hu_stuff.o		\
-		$(O)/hu_lib.o			\
-		$(O)/s_sound.o		\
-		$(O)/z_zone.o			\
-		$(O)/info.o				\
-		$(O)/sounds.o
+SRC_DOOM = i_main.o dummy.o am_map.o doomdef.o doomstat.o dstrings.o d_event.o d_items.o d_iwad.o d_loop.o d_main.o d_mode.o d_net.o f_finale.o f_wipe.o g_game.o hu_lib.o hu_stuff.o info.o i_cdmus.o i_endoom.o i_joystick.o i_scale.o i_sound.o i_system.o i_timer.o memio.o m_argv.o m_bbox.o m_cheat.o m_config.o m_controls.o m_fixed.o m_menu.o m_misc.o m_random.o p_ceilng.o p_doors.o p_enemy.o p_floor.o p_inter.o p_lights.o p_map.o p_maputl.o p_mobj.o p_plats.o p_pspr.o p_saveg.o p_setup.o p_sight.o p_spec.o p_switch.o p_telept.o p_tick.o p_user.o r_bsp.o r_data.o r_draw.o r_main.o r_plane.o r_segs.o r_sky.o r_things.o sha1.o sounds.o statdump.o st_lib.o st_stuff.o s_sound.o tables.o v_video.o wi_stuff.o w_checksum.o w_file.o w_file_stdc_unbuffered.o w_main.o w_wad.o z_zone.o
+OBJS += $(addprefix $(OBJDIR)/, $(SRC_DOOM))
 
-all:	 $(O)/fdoom
+all:	 $(OUTPUT)
 
 clean:
-	rm -f *.o *~ *.flc
-	rm -f frosted/*.o
-	rm -f frosted/fdoom
+	rm -rf $(OBJDIR)
+	rm -f $(OUTPUT)
+	rm -f $(OUTPUT).gdb
+	rm -f $(OUTPUT).map
 
-$(O)/fdoom:	$(OBJS) $(O)/i_main.o
+$(OUTPUT):	$(OBJS)
 	@echo [Linking $@]
-	$(VB)$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_main.o \
-	-o $(O)/fdoom $(LIBS) -Wl,-Map,fdoom.map
+	$(VB)$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) \
+	-o $(OUTPUT) $(LIBS) -Wl,-Map,$(OUTPUT).map
+	@echo [Size]
+	-$(CROSS_COMPILE)size $(OUTPUT)
+	-$(CROSS_COMPILE)flthdr $(OUTPUT)
 
-$(O):
-	mkdir -p $(O)
+$(OBJS): | $(OBJDIR)
 
-$(O)/%.o:	%.c $(O)
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+$(OBJDIR)/%.o:	%.c
 	@echo [Compiling $<]
 	$(VB)$(CC) $(CFLAGS) -c $< -o $@
+
+print:
+	@echo OBJS: $(OBJS)
 
 #############################################################
 #

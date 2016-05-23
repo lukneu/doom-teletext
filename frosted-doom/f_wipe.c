@@ -1,37 +1,29 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Mission begin melt/wipe screen special effect.
 //
-//-----------------------------------------------------------------------------
 
-
-static const char rcsid[] = "$Id: f_wipe.c,v 1.2 1997/02/03 22:45:09 b1 Exp $";
-
-
+#include <string.h>
 
 #include "z_zone.h"
 #include "i_video.h"
 #include "v_video.h"
 #include "m_random.h"
 
-#include "doomdef.h"
+#include "doomtype.h"
 
 #include "f_wipe.h"
 
@@ -230,6 +222,8 @@ wipe_exitMelt
   int	ticks )
 {
     Z_Free(y);
+    Z_Free(wipe_scr_start);
+    Z_Free(wipe_scr_end);
     return 0;
 }
 
@@ -240,7 +234,7 @@ wipe_StartScreen
   int	width,
   int	height )
 {
-    wipe_scr_start = screens[2];
+    wipe_scr_start = Z_Malloc(SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);
     I_ReadScreen(wipe_scr_start);
     return 0;
 }
@@ -252,9 +246,9 @@ wipe_EndScreen
   int	width,
   int	height )
 {
-    wipe_scr_end = screens[3];
+    wipe_scr_end = Z_Malloc(SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);
     I_ReadScreen(wipe_scr_end);
-    V_DrawBlock(x, y, 0, width, height, wipe_scr_start); // restore start scr.
+    V_DrawBlock(x, y, width, height, wipe_scr_start); // restore start scr.
     return 0;
 }
 
@@ -274,14 +268,12 @@ wipe_ScreenWipe
 	wipe_initMelt, wipe_doMelt, wipe_exitMelt
     };
 
-    void V_MarkRect(int, int, int, int);
-
     // initial stuff
     if (!go)
     {
 	go = 1;
 	// wipe_scr = (byte *) Z_Malloc(width*height, PU_STATIC, 0); // DEBUG
-	wipe_scr = screens[0];
+	wipe_scr = I_VideoBuffer;
 	(*wipes[wipeno*3])(width, height, ticks);
     }
 
@@ -298,5 +290,5 @@ wipe_ScreenWipe
     }
 
     return !go;
-
 }
+

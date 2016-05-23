@@ -1,38 +1,36 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-//
-// $Log:$
 //
 // DESCRIPTION:  the automap code
 //
-//-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
 
 #include <stdio.h>
 
+#include "deh_main.h"
 
 #include "z_zone.h"
+#include "doomkeys.h"
 #include "doomdef.h"
 #include "st_stuff.h"
 #include "p_local.h"
 #include "w_wad.h"
 
 #include "m_cheat.h"
+#include "m_controls.h"
+#include "m_misc.h"
 #include "i_system.h"
 
 // Needs access to LFB.
@@ -85,21 +83,6 @@ static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
 #define XHAIRCOLORS	GRAYS
 
 // drawing stuff
-#define	FB		0
-
-#define AM_PANDOWNKEY	KEY_DOWNARROW
-#define AM_PANUPKEY	KEY_UPARROW
-#define AM_PANRIGHTKEY	KEY_RIGHTARROW
-#define AM_PANLEFTKEY	KEY_LEFTARROW
-#define AM_ZOOMINKEY	'='
-#define AM_ZOOMOUTKEY	'-'
-#define AM_STARTKEY	KEY_TAB
-#define AM_ENDKEY	KEY_TAB
-#define AM_GOBIGKEY	'0'
-#define AM_FOLLOWKEY	'f'
-#define AM_GRIDKEY	'g'
-#define AM_MARKKEY	'm'
-#define AM_CLEARMARKKEY	'c'
 
 #define AM_NUMMARKPOINTS 10
 
@@ -168,7 +151,6 @@ mline_t player_arrow[] = {
     { { -R+3*R/8, 0 }, { -R+R/8, -R/4 } }
 };
 #undef R
-#define NUMPLYRLINES (sizeof(player_arrow)/sizeof(mline_t))
 
 #define R ((8*PLAYERRADIUS)/7)
 mline_t cheat_player_arrow[] = {
@@ -190,25 +172,22 @@ mline_t cheat_player_arrow[] = {
     { { R/6+R/32, -R/7-R/32 }, { R/6+R/10, -R/7 } }
 };
 #undef R
-#define NUMCHEATPLYRLINES (sizeof(cheat_player_arrow)/sizeof(mline_t))
 
 #define R (FRACUNIT)
 mline_t triangle_guy[] = {
-    { { -.867*R, -.5*R }, { .867*R, -.5*R } },
-    { { .867*R, -.5*R } , { 0, R } },
-    { { 0, R }, { -.867*R, -.5*R } }
+    { { (fixed_t)(-.867*R), (fixed_t)(-.5*R) }, { (fixed_t)(.867*R ), (fixed_t)(-.5*R) } },
+    { { (fixed_t)(.867*R ), (fixed_t)(-.5*R) }, { (fixed_t)(0      ), (fixed_t)(R    ) } },
+    { { (fixed_t)(0      ), (fixed_t)(R    ) }, { (fixed_t)(-.867*R), (fixed_t)(-.5*R) } }
 };
 #undef R
-#define NUMTRIANGLEGUYLINES (sizeof(triangle_guy)/sizeof(mline_t))
 
 #define R (FRACUNIT)
 mline_t thintriangle_guy[] = {
-    { { -.5*R, -.7*R }, { R, 0 } },
-    { { R, 0 }, { -.5*R, .7*R } },
-    { { -.5*R, .7*R }, { -.5*R, -.7*R } }
+    { { (fixed_t)(-.5*R), (fixed_t)(-.7*R) }, { (fixed_t)(R    ), (fixed_t)(0    ) } },
+    { { (fixed_t)(R    ), (fixed_t)(0    ) }, { (fixed_t)(-.5*R), (fixed_t)(.7*R ) } },
+    { { (fixed_t)(-.5*R), (fixed_t)(.7*R ) }, { (fixed_t)(-.5*R), (fixed_t)(-.7*R) } }
 };
 #undef R
-#define NUMTHINTRIANGLEGUYLINES (sizeof(thintriangle_guy)/sizeof(mline_t))
 
 
 
@@ -272,7 +251,7 @@ static fixed_t old_m_x, old_m_y;
 static mpoint_t f_oldloc;
 
 // used by MTOF to scale from map-to-frame-buffer coords
-static fixed_t scale_mtof = INITSCALEMTOF;
+static fixed_t scale_mtof = (fixed_t)INITSCALEMTOF;
 // used by FTOM to scale from frame-buffer-to-map coords (=1/scale_mtof)
 static fixed_t scale_ftom;
 
@@ -284,22 +263,9 @@ static int markpointnum = 0; // next point to be assigned
 
 static int followplayer = 1; // specifies whether to follow the player around
 
-static unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
-static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
+cheatseq_t cheat_amap = CHEAT("iddt", 0);
 
 static boolean stopped = true;
-
-extern boolean viewactive;
-//extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
-
-
-
-void
-V_MarkRect
-( int	x,
-  int	y,
-  int	width,
-  int	height );
 
 // Calculates the slope and slope according to the x-axis of a line
 // segment in map coordinates (with the upright y-axis n' all) so
@@ -314,9 +280,9 @@ AM_getIslope
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
-    if (!dy) is->islp = (dx<0?-MAXINT:MAXINT);
+    if (!dy) is->islp = (dx<0?-INT_MAX:INT_MAX);
     else is->islp = FixedDiv(dx, dy);
-    if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
+    if (!dx) is->slp = (dy<0?-INT_MAX:INT_MAX);
     else is->slp = FixedDiv(dy, dx);
 
 }
@@ -392,8 +358,8 @@ void AM_findMinMaxBoundaries(void)
     fixed_t a;
     fixed_t b;
 
-    min_x = min_y =  MAXINT;
-    max_x = max_y = -MAXINT;
+    min_x = min_y =  INT_MAX;
+    max_x = max_y = -INT_MAX;
   
     for (i=0;i<numvertexes;i++)
     {
@@ -431,7 +397,7 @@ void AM_changeWindowLoc(void)
     if (m_paninc.x || m_paninc.y)
     {
 	followplayer = 0;
-	f_oldloc.x = MAXINT;
+	f_oldloc.x = INT_MAX;
     }
 
     m_x += m_paninc.x;
@@ -458,12 +424,12 @@ void AM_changeWindowLoc(void)
 void AM_initVariables(void)
 {
     int pnum;
-    static event_t st_notify = { ev_keyup, AM_MSGENTERED };
+    static event_t st_notify = { ev_keyup, AM_MSGENTERED, 0, 0 };
 
     automapactive = true;
-    fb = screens[0];
+    fb = I_VideoBuffer;
 
-    f_oldloc.x = MAXINT;
+    f_oldloc.x = INT_MAX;
     amclock = 0;
     lightlev = 0;
 
@@ -475,12 +441,24 @@ void AM_initVariables(void)
     m_h = FTOM(f_h);
 
     // find player to center on initially
-    if (!playeringame[pnum = consoleplayer])
+    if (playeringame[consoleplayer])
+    {
+        plr = &players[consoleplayer];
+    }
+    else
+    {
+        plr = &players[0];
+
 	for (pnum=0;pnum<MAXPLAYERS;pnum++)
+        {
 	    if (playeringame[pnum])
+            {
+                plr = &players[pnum];
 		break;
-  
-    plr = &players[pnum];
+            }
+        }
+    }
+
     m_x = plr->mo->x - m_w/2;
     m_y = plr->mo->y - m_h/2;
     AM_changeWindowLoc();
@@ -506,7 +484,7 @@ void AM_loadPics(void)
   
     for (i=0;i<10;i++)
     {
-	sprintf(namebuf, "AMMNUM%d", i);
+	DEH_snprintf(namebuf, 9, "AMMNUM%d", i);
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -515,10 +493,13 @@ void AM_loadPics(void)
 void AM_unloadPics(void)
 {
     int i;
+    char namebuf[9];
   
     for (i=0;i<10;i++)
-	Z_ChangeTag(marknums[i], PU_CACHE);
-
+    {
+	DEH_snprintf(namebuf, 9, "AMMNUM%d", i);
+	W_ReleaseLumpName(namebuf);
+    }
 }
 
 void AM_clearMarks(void)
@@ -559,7 +540,7 @@ void AM_LevelInit(void)
 //
 void AM_Stop (void)
 {
-    static event_t st_notify = { 0, ev_keyup, AM_MSGEXITED };
+    static event_t st_notify = { 0, ev_keyup, AM_MSGEXITED, 0 };
 
     AM_unloadPics();
     automapactive = false;
@@ -616,118 +597,138 @@ AM_Responder
 {
 
     int rc;
-    //static int cheatstate=0;
     static int bigstate=0;
     static char buffer[20];
+    int key;
 
     rc = false;
 
     if (!automapactive)
     {
-	if (ev->type == ev_keydown && ev->data1 == AM_STARTKEY)
+	if (ev->type == ev_keydown && ev->data1 == key_map_toggle)
 	{
 	    AM_Start ();
 	    viewactive = false;
 	    rc = true;
 	}
     }
-
     else if (ev->type == ev_keydown)
     {
-
 	rc = true;
-	switch(ev->data1)
-	{
-	  case AM_PANRIGHTKEY: // pan right
-	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
-	    else rc = false;
-	    break;
-	  case AM_PANLEFTKEY: // pan left
-	    if (!followplayer) m_paninc.x = -FTOM(F_PANINC);
-	    else rc = false;
-	    break;
-	  case AM_PANUPKEY: // pan up
-	    if (!followplayer) m_paninc.y = FTOM(F_PANINC);
-	    else rc = false;
-	    break;
-	  case AM_PANDOWNKEY: // pan down
-	    if (!followplayer) m_paninc.y = -FTOM(F_PANINC);
-	    else rc = false;
-	    break;
-	  case AM_ZOOMOUTKEY: // zoom out
-	    mtof_zoommul = M_ZOOMOUT;
-	    ftom_zoommul = M_ZOOMIN;
-	    break;
-	  case AM_ZOOMINKEY: // zoom in
-	    mtof_zoommul = M_ZOOMIN;
-	    ftom_zoommul = M_ZOOMOUT;
-	    break;
-	  case AM_ENDKEY:
-	    bigstate = 0;
-	    viewactive = true;
-	    AM_Stop ();
-	    break;
-	  case AM_GOBIGKEY:
-	    bigstate = !bigstate;
-	    if (bigstate)
-	    {
-		AM_saveScaleAndLoc();
-		AM_minOutWindowScale();
-	    }
-	    else AM_restoreScaleAndLoc();
-	    break;
-	  case AM_FOLLOWKEY:
-	    followplayer = !followplayer;
-	    f_oldloc.x = MAXINT;
-	    plr->message = followplayer ? AMSTR_FOLLOWON : AMSTR_FOLLOWOFF;
-	    break;
-	  case AM_GRIDKEY:
-	    grid = !grid;
-	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
-	    break;
-	  case AM_MARKKEY:
-	    sprintf(buffer, "%s %d", AMSTR_MARKEDSPOT, markpointnum);
-	    plr->message = buffer;
-	    AM_addMark();
-	    break;
-	  case AM_CLEARMARKKEY:
-	    AM_clearMarks();
-	    plr->message = AMSTR_MARKSCLEARED;
-	    break;
-	  default:
-	    //cheatstate=0;
-	    rc = false;
-	}
-	if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
+        key = ev->data1;
+
+        if (key == key_map_east)          // pan right
+        {
+            if (!followplayer) m_paninc.x = FTOM(F_PANINC);
+            else rc = false;
+        }
+        else if (key == key_map_west)     // pan left
+        {
+            if (!followplayer) m_paninc.x = -FTOM(F_PANINC);
+            else rc = false;
+        }
+        else if (key == key_map_north)    // pan up
+        {
+            if (!followplayer) m_paninc.y = FTOM(F_PANINC);
+            else rc = false;
+        }
+        else if (key == key_map_south)    // pan down
+        {
+            if (!followplayer) m_paninc.y = -FTOM(F_PANINC);
+            else rc = false;
+        }
+        else if (key == key_map_zoomout)  // zoom out
+        {
+            mtof_zoommul = M_ZOOMOUT;
+            ftom_zoommul = M_ZOOMIN;
+        }
+        else if (key == key_map_zoomin)   // zoom in
+        {
+            mtof_zoommul = M_ZOOMIN;
+            ftom_zoommul = M_ZOOMOUT;
+        }
+        else if (key == key_map_toggle)
+        {
+            bigstate = 0;
+            viewactive = true;
+            AM_Stop ();
+        }
+        else if (key == key_map_maxzoom)
+        {
+            bigstate = !bigstate;
+            if (bigstate)
+            {
+                AM_saveScaleAndLoc();
+                AM_minOutWindowScale();
+            }
+            else AM_restoreScaleAndLoc();
+        }
+        else if (key == key_map_follow)
+        {
+            followplayer = !followplayer;
+            f_oldloc.x = INT_MAX;
+            if (followplayer)
+                plr->message = DEH_String(AMSTR_FOLLOWON);
+            else
+                plr->message = DEH_String(AMSTR_FOLLOWOFF);
+        }
+        else if (key == key_map_grid)
+        {
+            grid = !grid;
+            if (grid)
+                plr->message = DEH_String(AMSTR_GRIDON);
+            else
+                plr->message = DEH_String(AMSTR_GRIDOFF);
+        }
+        else if (key == key_map_mark)
+        {
+            M_snprintf(buffer, sizeof(buffer), "%s %d",
+                       DEH_String(AMSTR_MARKEDSPOT), markpointnum);
+            plr->message = buffer;
+            AM_addMark();
+        }
+        else if (key == key_map_clearmark)
+        {
+            AM_clearMarks();
+            plr->message = DEH_String(AMSTR_MARKSCLEARED);
+        }
+        else
+        {
+            rc = false;
+        }
+
+	if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data2))
 	{
 	    rc = false;
 	    cheating = (cheating+1) % 3;
 	}
     }
-
     else if (ev->type == ev_keyup)
     {
-	rc = false;
-	switch (ev->data1)
-	{
-	  case AM_PANRIGHTKEY:
-	    if (!followplayer) m_paninc.x = 0;
-	    break;
-	  case AM_PANLEFTKEY:
-	    if (!followplayer) m_paninc.x = 0;
-	    break;
-	  case AM_PANUPKEY:
-	    if (!followplayer) m_paninc.y = 0;
-	    break;
-	  case AM_PANDOWNKEY:
-	    if (!followplayer) m_paninc.y = 0;
-	    break;
-	  case AM_ZOOMOUTKEY:
-	  case AM_ZOOMINKEY:
-	    mtof_zoommul = FRACUNIT;
-	    ftom_zoommul = FRACUNIT;
-	    break;
-	}
+        rc = false;
+        key = ev->data1;
+
+        if (key == key_map_east)
+        {
+            if (!followplayer) m_paninc.x = 0;
+        }
+        else if (key == key_map_west)
+        {
+            if (!followplayer) m_paninc.x = 0;
+        }
+        else if (key == key_map_north)
+        {
+            if (!followplayer) m_paninc.y = 0;
+        }
+        else if (key == key_map_south)
+        {
+            if (!followplayer) m_paninc.y = 0;
+        }
+        else if (key == key_map_zoomout || key == key_map_zoomin)
+        {
+            mtof_zoommul = FRACUNIT;
+            ftom_zoommul = FRACUNIT;
+        }
     }
 
     return rc;
@@ -792,7 +793,7 @@ void AM_updateLightLev(void)
     if (amclock>nexttic)
     {
 	lightlev = litelevels[litelevelscnt++];
-	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
+	if (litelevelscnt == arrlen(litelevels)) litelevelscnt = 0;
 	nexttic = amclock + 6 - (amclock % 6);
     }
 
@@ -856,9 +857,9 @@ AM_clipMline
 	TOP	=8
     };
     
-    register int outcode1 = 0;
-    register int outcode2 = 0;
-    register int outside;
+    register int	outcode1 = 0;
+    register int	outcode2 = 0;
+    register int	outside;
     
     fpoint_t	tmp;
     int		dx;
@@ -950,6 +951,11 @@ AM_clipMline
 	    tmp.y = fl->a.y + (dy*(-fl->a.x))/dx;
 	    tmp.x = 0;
 	}
+        else
+        {
+            tmp.x = 0;
+            tmp.y = 0;
+        }
 
 	if (outside == outcode1)
 	{
@@ -989,7 +995,7 @@ AM_drawFline
     register int ay;
     register int d;
     
-    //static fuck = 0;
+    static int fuck = 0;
 
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
@@ -997,7 +1003,7 @@ AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	//fprintf(stderr, "fuck %d \r", fuck++);
+        DEH_fprintf(stderr, "fuck %d \r", fuck++);
 	return;
     }
 
@@ -1249,11 +1255,11 @@ void AM_drawPlayers(void)
     {
 	if (cheating)
 	    AM_drawLineCharacter
-		(cheat_player_arrow, NUMCHEATPLYRLINES, 0,
+		(cheat_player_arrow, arrlen(cheat_player_arrow), 0,
 		 plr->mo->angle, WHITE, plr->mo->x, plr->mo->y);
 	else
 	    AM_drawLineCharacter
-		(player_arrow, NUMPLYRLINES, 0, plr->mo->angle,
+		(player_arrow, arrlen(player_arrow), 0, plr->mo->angle,
 		 WHITE, plr->mo->x, plr->mo->y);
 	return;
     }
@@ -1275,7 +1281,7 @@ void AM_drawPlayers(void)
 	    color = their_colors[their_color];
 	
 	AM_drawLineCharacter
-	    (player_arrow, NUMPLYRLINES, 0, p->mo->angle,
+	    (player_arrow, arrlen(player_arrow), 0, p->mo->angle,
 	     color, p->mo->x, p->mo->y);
     }
 
@@ -1295,7 +1301,7 @@ AM_drawThings
 	while (t)
 	{
 	    AM_drawLineCharacter
-		(thintriangle_guy, NUMTHINTRIANGLEGUYLINES,
+		(thintriangle_guy, arrlen(thintriangle_guy),
 		 16<<FRACBITS, t->angle, colors+lightlev, t->x, t->y);
 	    t = t->snext;
 	}
@@ -1317,7 +1323,7 @@ void AM_drawMarks(void)
 	    fx = CXMTOF(markpoints[i].x);
 	    fy = CYMTOF(markpoints[i].y);
 	    if (fx >= f_x && fx <= f_w - w && fy >= f_y && fy <= f_h - h)
-		V_DrawPatch(fx, fy, FB, marknums[i]);
+		V_DrawPatch(fx, fy, marknums[i]);
 	}
     }
 

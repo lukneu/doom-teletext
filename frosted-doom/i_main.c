@@ -1,45 +1,50 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Main program, simply calls D_DoomMain high level loop.
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: i_main.c,v 1.4 1997/02/03 22:45:10 b1 Exp $";
+#include "config.h"
 
+#include <stdio.h>
 
-
-#include "doomdef.h"
-
+#include "doomtype.h"
+#include "i_system.h"
 #include "m_argv.h"
-#include "d_main.h"
 
-int
-main
-( int		argc,
-  char**	argv ) 
-{ 
-    myargc = argc; 
-    myargv = argv; 
- 
-    D_DoomMain (); 
+//
+// D_DoomMain()
+// Not a globally visible function, just included for source reference,
+// calls all startup code, parses command line options.
+//
+
+void D_DoomMain (void);
+
+int main(int argc, char **argv)
+{
+    // save arguments
+
+    myargc = argc;
+    myargv = argv;
+
+    M_FindResponseFile();
+
+    // start doom
+    printf("Starting D_DoomMain\r\n");
+    D_DoomMain ();
 
     return 0;
-} 
+}
+

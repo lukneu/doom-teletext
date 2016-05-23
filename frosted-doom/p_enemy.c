@@ -1,31 +1,24 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Enemy thinking, AI.
 //	Action Pointer Functions
 //	that are associated with states/frames. 
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: p_enemy.c,v 1.5 1997/02/03 22:45:11 b1 Exp $";
-
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "m_random.h"
@@ -264,11 +257,6 @@ boolean P_CheckMissileRange (mobj_t* actor)
 fixed_t	xspeed[8] = {FRACUNIT,47000,0,-47000,-FRACUNIT,-47000,0,47000};
 fixed_t yspeed[8] = {0,47000,FRACUNIT,47000,0,-47000,-FRACUNIT,-47000};
 
-#define MAXSPECIALCROSS	8
-
-extern	line_t*	spechit[MAXSPECIALCROSS];
-extern	int	numspechit;
-
 boolean P_Move (mobj_t*	actor)
 {
     fixed_t	tryx;
@@ -400,7 +388,7 @@ void P_NewChaseDir (mobj_t*	actor)
 	&& d[2] != DI_NODIR)
     {
 	actor->movedir = diags[((deltay<0)<<1)+(deltax>0)];
-	if (actor->movedir != turnaround && P_TryWalk(actor))
+	if (actor->movedir != (int) turnaround && P_TryWalk(actor))
 	    return;
     }
 
@@ -453,7 +441,7 @@ void P_NewChaseDir (mobj_t*	actor)
 	      tdir<=DI_SOUTHEAST;
 	      tdir++ )
 	{
-	    if (tdir!=turnaround)
+	    if (tdir != (int) turnaround)
 	    {
 		actor->movedir =tdir;
 		
@@ -468,9 +456,9 @@ void P_NewChaseDir (mobj_t*	actor)
 	      tdir != (DI_EAST-1);
 	      tdir-- )
 	{
-	    if (tdir!=turnaround)
+	    if (tdir != (int) turnaround)
 	    {
-		actor->movedir =tdir;
+		actor->movedir = tdir;
 		
 		if ( P_TryWalk(actor) )
 		    return;
@@ -503,12 +491,9 @@ P_LookForPlayers
     int		c;
     int		stop;
     player_t*	player;
-    //sector_t*	sector;
     angle_t	an;
     fixed_t	dist;
-		
-    //sector = actor->subsector->sector;
-	
+
     c = 0;
     stop = (actor->lastlook-1)&3;
 	
@@ -589,7 +574,7 @@ void A_KeenDie (mobj_t* mo)
     }
 
     junk.tag = 666;
-    EV_DoDoor(&junk,open);
+    EV_DoDoor(&junk, vld_open);
 }
 
 
@@ -1257,14 +1242,17 @@ void A_FireCrackle (mobj_t* actor)
 void A_Fire (mobj_t* actor)
 {
     mobj_t*	dest;
+    mobj_t*     target;
     unsigned	an;
 		
     dest = actor->tracer;
     if (!dest)
 	return;
+
+    target = P_SubstNullMobj(actor->target);
 		
     // don't move it if the vile lost sight
-    if (!P_CheckSight (actor->target, dest) )
+    if (!P_CheckSight (target, dest) )
 	return;
 
     an = dest->angle >> ANGLETOFINESHIFT;
@@ -1358,14 +1346,17 @@ void A_FatRaise (mobj_t *actor)
 void A_FatAttack1 (mobj_t* actor)
 {
     mobj_t*	mo;
+    mobj_t*     target;
     int		an;
-	
+
     A_FaceTarget (actor);
+
     // Change direction  to ...
     actor->angle += FATSPREAD;
-    P_SpawnMissile (actor, actor->target, MT_FATSHOT);
+    target = P_SubstNullMobj(actor->target);
+    P_SpawnMissile (actor, target, MT_FATSHOT);
 
-    mo = P_SpawnMissile (actor, actor->target, MT_FATSHOT);
+    mo = P_SpawnMissile (actor, target, MT_FATSHOT);
     mo->angle += FATSPREAD;
     an = mo->angle >> ANGLETOFINESHIFT;
     mo->momx = FixedMul (mo->info->speed, finecosine[an]);
@@ -1375,14 +1366,16 @@ void A_FatAttack1 (mobj_t* actor)
 void A_FatAttack2 (mobj_t* actor)
 {
     mobj_t*	mo;
+    mobj_t*     target;
     int		an;
 
     A_FaceTarget (actor);
     // Now here choose opposite deviation.
     actor->angle -= FATSPREAD;
-    P_SpawnMissile (actor, actor->target, MT_FATSHOT);
+    target = P_SubstNullMobj(actor->target);
+    P_SpawnMissile (actor, target, MT_FATSHOT);
 
-    mo = P_SpawnMissile (actor, actor->target, MT_FATSHOT);
+    mo = P_SpawnMissile (actor, target, MT_FATSHOT);
     mo->angle -= FATSPREAD*2;
     an = mo->angle >> ANGLETOFINESHIFT;
     mo->momx = FixedMul (mo->info->speed, finecosine[an]);
@@ -1392,17 +1385,20 @@ void A_FatAttack2 (mobj_t* actor)
 void A_FatAttack3 (mobj_t*	actor)
 {
     mobj_t*	mo;
+    mobj_t*     target;
     int		an;
 
     A_FaceTarget (actor);
+
+    target = P_SubstNullMobj(actor->target);
     
-    mo = P_SpawnMissile (actor, actor->target, MT_FATSHOT);
+    mo = P_SpawnMissile (actor, target, MT_FATSHOT);
     mo->angle -= FATSPREAD/2;
     an = mo->angle >> ANGLETOFINESHIFT;
     mo->momx = FixedMul (mo->info->speed, finecosine[an]);
     mo->momy = FixedMul (mo->info->speed, finesine[an]);
 
-    mo = P_SpawnMissile (actor, actor->target, MT_FATSHOT);
+    mo = P_SpawnMissile (actor, target, MT_FATSHOT);
     mo->angle += FATSPREAD/2;
     an = mo->angle >> ANGLETOFINESHIFT;
     mo->momx = FixedMul (mo->info->speed, finecosine[an]);
@@ -1597,9 +1593,60 @@ void A_Fall (mobj_t *actor)
 //
 void A_Explode (mobj_t* thingy)
 {
-    P_RadiusAttack ( thingy, thingy->target, 128 );
+    P_RadiusAttack(thingy, thingy->target, 128);
 }
 
+// Check whether the death of the specified monster type is allowed
+// to trigger the end of episode special action.
+//
+// This behavior changed in v1.9, the most notable effect of which
+// was to break uac_dead.wad
+
+static boolean CheckBossEnd(mobjtype_t motype)
+{
+    if (gameversion < exe_ultimate)
+    {
+        if (gamemap != 8)
+        {
+            return false;
+        }
+
+        // Baron death on later episodes is nothing special.
+
+        if (motype == MT_BRUISER && gameepisode != 1)
+        {
+            return false;
+        }
+
+        return true;
+    }
+    else
+    {
+        // New logic that appeared in Ultimate Doom.
+        // Looks like the logic was overhauled while adding in the
+        // episode 4 support.  Now bosses only trigger on their
+        // specific episode.
+
+	switch(gameepisode)
+	{
+            case 1:
+                return gamemap == 8 && motype == MT_BRUISER;
+
+            case 2:
+                return gamemap == 8 && motype == MT_CYBORG;
+
+            case 3:
+                return gamemap == 8 && motype == MT_SPIDER;
+
+	    case 4:
+                return (gamemap == 6 && motype == MT_CYBORG)
+                    || (gamemap == 8 && motype == MT_SPIDER);
+
+            default:
+                return gamemap == 8;
+	}
+    }
+}
 
 //
 // A_BossDeath
@@ -1624,61 +1671,12 @@ void A_BossDeath (mobj_t* mo)
     }
     else
     {
-	switch(gameepisode)
-	{
-	  case 1:
-	    if (gamemap != 8)
-		return;
-
-	    if (mo->type != MT_BRUISER)
-		return;
-	    break;
-	    
-	  case 2:
-	    if (gamemap != 8)
-		return;
-
-	    if (mo->type != MT_CYBORG)
-		return;
-	    break;
-	    
-	  case 3:
-	    if (gamemap != 8)
-		return;
-	    
-	    if (mo->type != MT_SPIDER)
-		return;
-	    
-	    break;
-	    
-	  case 4:
-	    switch(gamemap)
-	    {
-	      case 6:
-		if (mo->type != MT_CYBORG)
-		    return;
-		break;
-		
-	      case 8: 
-		if (mo->type != MT_SPIDER)
-		    return;
-		break;
-		
-	      default:
-		return;
-		break;
-	    }
-	    break;
-	    
-	  default:
-	    if (gamemap != 8)
-		return;
-	    break;
-	}
-		
+        if (!CheckBossEnd(mo->type))
+        {
+            return;
+        }
     }
 
-    
     // make sure there is a player alive for victory
     for (i=0 ; i<MAXPLAYERS ; i++)
 	if (playeringame[i] && players[i].health > 0)
@@ -1739,7 +1737,7 @@ void A_BossDeath (mobj_t* mo)
 	    {
 	      case 6:
 		junk.tag = 666;
-		EV_DoDoor (&junk, blazeOpen);
+		EV_DoDoor (&junk, vld_blazeOpen);
 		return;
 		break;
 		
@@ -1808,7 +1806,7 @@ A_CloseShotgun2
 
 mobj_t*		braintargets[32];
 int		numbraintargets;
-int		braintargeton;
+int		braintargeton = 0;
 
 void A_BrainAwake (mobj_t* mo)
 {
@@ -1944,7 +1942,7 @@ void A_SpawnFly (mobj_t* mo)
     if (--mo->reactiontime)
 	return;	// still flying
 	
-    targ = mo->target;
+    targ = P_SubstNullMobj(mo->target);
 
     // First spawn teleport fog.
     fog = P_SpawnMobj (targ->x, targ->y, targ->z, MT_SPAWNFIRE);

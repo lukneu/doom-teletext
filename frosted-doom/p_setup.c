@@ -1,36 +1,31 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Do all the WAD I/O, get map description,
 //	set up initial state and misc. LUTs.
 //
-//-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: p_setup.c,v 1.5 1997/02/03 22:45:12 b1 Exp $";
 
 
 #include <math.h>
 
 #include "z_zone.h"
 
-#include "m_swap.h"
+#include "deh_main.h"
+#include "i_swap.h"
+#include "m_argv.h"
 #include "m_bbox.h"
 
 #include "g_game.h"
@@ -74,6 +69,7 @@ line_t*		lines;
 int		numsides;
 side_t*		sides;
 
+static int      totallines;
 
 // BLOCKMAP
 // Created from axis aligned bounding box
@@ -134,7 +130,7 @@ void P_LoadVertexes (int lump)
     vertexes = Z_Malloc (numvertexes*sizeof(vertex_t),PU_LEVEL,0);	
 
     // Load data into cache.
-    data = W_CacheLumpNum (lump,PU_STATIC);
+    data = W_CacheLumpNum (lump, PU_STATIC);
 	
     ml = (mapvertex_t *)data;
     li = vertexes;
@@ -148,10 +144,27 @@ void P_LoadVertexes (int lump)
     }
 
     // Free buffer memory.
-    Z_Free (data);
+    W_ReleaseLumpNum(lump);
 }
 
+//
+// GetSectorAtNullAddress
+//
+sector_t* GetSectorAtNullAddress(void)
+{
+    static boolean null_sector_is_initialized = false;
+    static sector_t null_sector;
 
+    if (!null_sector_is_initialized)
+    {
+        memset(&null_sector, 0, sizeof(null_sector));
+        I_GetMemoryValue(0, &null_sector.floorheight, 4);
+        I_GetMemoryValue(4, &null_sector.ceilingheight, 4);
+        null_sector_is_initialized = true;
+    }
+
+    return &null_sector;
+}
 
 //
 // P_LoadSegs
@@ -165,6 +178,7 @@ void P_LoadSegs (int lump)
     line_t*		ldef;
     int			linedef;
     int			side;
+    int                 sidenum;
 	
     numsegs = W_LumpLength (lump) / sizeof(mapseg_t);
     segs = Z_Malloc (numsegs*sizeof(seg_t),PU_LEVEL,0);	
@@ -177,7 +191,7 @@ void P_LoadSegs (int lump)
     {
 	li->v1 = &vertexes[SHORT(ml->v1)];
 	li->v2 = &vertexes[SHORT(ml->v2)];
-					
+
 	li->angle = (SHORT(ml->angle))<<16;
 	li->offset = (SHORT(ml->offset))<<16;
 	linedef = SHORT(ml->linedef);
@@ -186,13 +200,33 @@ void P_LoadSegs (int lump)
 	side = SHORT(ml->side);
 	li->sidedef = &sides[ldef->sidenum[side]];
 	li->frontsector = sides[ldef->sidenum[side]].sector;
-	if (ldef-> flags & ML_TWOSIDED)
-	    li->backsector = sides[ldef->sidenum[side^1]].sector;
-	else
+
+        if (ldef-> flags & ML_TWOSIDED)
+        {
+            sidenum = ldef->sidenum[side ^ 1];
+
+            // If the sidenum is out of range, this may be a "glass hack"
+            // impassible window.  Point at side #0 (this may not be
+            // the correct Vanilla behavior; however, it seems to work for
+            // OTTAWAU.WAD, which is the one place I've seen this trick
+            // used).
+
+            if (sidenum < 0 || sidenum >= numsides)
+            {
+                li->backsector = GetSectorAtNullAddress();
+            }
+            else
+            {
+                li->backsector = sides[sidenum].sector;
+            }
+        }
+        else
+        {
 	    li->backsector = 0;
+        }
     }
 	
-    Z_Free (data);
+    W_ReleaseLumpNum(lump);
 }
 
 
@@ -220,7 +254,7 @@ void P_LoadSubsectors (int lump)
 	ss->firstline = SHORT(ms->firstseg);
     }
 	
-    Z_Free (data);
+    W_ReleaseLumpNum(lump);
 }
 
 
@@ -254,7 +288,7 @@ void P_LoadSectors (int lump)
 	ss->thinglist = NULL;
     }
 	
-    Z_Free (data);
+    W_ReleaseLumpNum(lump);
 }
 
 
@@ -291,7 +325,7 @@ void P_LoadNodes (int lump)
 	}
     }
 	
-    Z_Free (data);
+    W_ReleaseLumpNum(lump);
 }
 
 
@@ -300,12 +334,13 @@ void P_LoadNodes (int lump)
 //
 void P_LoadThings (int lump)
 {
-    byte*		data;
+    byte               *data;
     int			i;
-    mapthing_t*		mt;
+    mapthing_t         *mt;
+    mapthing_t          spawnthing;
     int			numthings;
     boolean		spawn;
-	
+
     data = W_CacheLumpNum (lump,PU_STATIC);
     numthings = W_LumpLength (lump) / sizeof(mapthing_t);
 	
@@ -315,9 +350,9 @@ void P_LoadThings (int lump)
 	spawn = true;
 
 	// Do not spawn cool, new monsters if !commercial
-	if ( gamemode != commercial)
+	if (gamemode != commercial)
 	{
-	    switch(mt->type)
+	    switch (SHORT(mt->type))
 	    {
 	      case 68:	// Arachnotron
 	      case 64:	// Archvile
@@ -337,16 +372,16 @@ void P_LoadThings (int lump)
 	    break;
 
 	// Do spawn all other stuff. 
-	mt->x = SHORT(mt->x);
-	mt->y = SHORT(mt->y);
-	mt->angle = SHORT(mt->angle);
-	mt->type = SHORT(mt->type);
-	mt->options = SHORT(mt->options);
+	spawnthing.x = SHORT(mt->x);
+	spawnthing.y = SHORT(mt->y);
+	spawnthing.angle = SHORT(mt->angle);
+	spawnthing.type = SHORT(mt->type);
+	spawnthing.options = SHORT(mt->options);
 	
-	P_SpawnMapThing (mt);
+	P_SpawnMapThing(&spawnthing);
     }
-	
-    Z_Free (data);
+
+    W_ReleaseLumpNum(lump);
 }
 
 
@@ -427,8 +462,8 @@ void P_LoadLineDefs (int lump)
 	else
 	    ld->backsector = 0;
     }
-	
-    Z_Free (data);
+
+    W_ReleaseLumpNum(lump);
 }
 
 
@@ -458,8 +493,8 @@ void P_LoadSideDefs (int lump)
 	sd->midtexture = R_TextureNumForName(msd->midtexture);
 	sd->sector = &sectors[SHORT(msd->sector)];
     }
-	
-    Z_Free (data);
+
+    W_ReleaseLumpNum(lump);
 }
 
 
@@ -468,25 +503,36 @@ void P_LoadSideDefs (int lump)
 //
 void P_LoadBlockMap (int lump)
 {
-    int		i;
-    int		count;
-	
-    blockmaplump = W_CacheLumpNum (lump,PU_LEVEL);
-    blockmap = blockmaplump+4;
-    count = W_LumpLength (lump)/2;
+    int i;
+    int count;
+    int lumplen;
 
-    for (i=0 ; i<count ; i++)
+    lumplen = W_LumpLength(lump);
+    count = lumplen / 2;
+	
+    blockmaplump = Z_Malloc(lumplen, PU_LEVEL, NULL);
+    W_ReadLump(lump, blockmaplump);
+    blockmap = blockmaplump + 4;
+
+    // Swap all short integers to native byte ordering.
+  
+    for (i=0; i<count; i++)
+    {
 	blockmaplump[i] = SHORT(blockmaplump[i]);
+    }
 		
+    // Read the header
+
     bmaporgx = blockmaplump[0]<<FRACBITS;
     bmaporgy = blockmaplump[1]<<FRACBITS;
     bmapwidth = blockmaplump[2];
     bmapheight = blockmaplump[3];
 	
-    // clear out mobj chains
-    count = sizeof(*blocklinks)* bmapwidth*bmapheight;
-    blocklinks = Z_Malloc (count,PU_LEVEL, 0);
-    memset (blocklinks, 0, count);
+    // Clear out mobj chains
+
+    count = sizeof(*blocklinks) * bmapwidth * bmapheight;
+    blocklinks = Z_Malloc(count, PU_LEVEL, 0);
+    memset(blocklinks, 0, count);
 }
 
 
@@ -501,7 +547,6 @@ void P_GroupLines (void)
     line_t**		linebuffer;
     int			i;
     int			j;
-    int			total;
     line_t*		li;
     sector_t*		sector;
     subsector_t*	ss;
@@ -519,39 +564,73 @@ void P_GroupLines (void)
 
     // count number of lines in each sector
     li = lines;
-    total = 0;
+    totallines = 0;
     for (i=0 ; i<numlines ; i++, li++)
     {
-	total++;
+	totallines++;
 	li->frontsector->linecount++;
 
 	if (li->backsector && li->backsector != li->frontsector)
 	{
 	    li->backsector->linecount++;
-	    total++;
+	    totallines++;
 	}
     }
-	
+
     // build line tables for each sector	
-    linebuffer = Z_Malloc (total*4, PU_LEVEL, 0);
+    linebuffer = Z_Malloc (totallines*sizeof(line_t *), PU_LEVEL, 0);
+
+    for (i=0; i<numsectors; ++i)
+    {
+        // Assign the line buffer for this sector
+
+        sectors[i].lines = linebuffer;
+        linebuffer += sectors[i].linecount;
+
+        // Reset linecount to zero so in the next stage we can count
+        // lines into the list.
+
+        sectors[i].linecount = 0;
+    }
+
+    // Assign lines to sectors
+
+    for (i=0; i<numlines; ++i)
+    { 
+        li = &lines[i];
+
+        if (li->frontsector != NULL)
+        {
+            sector = li->frontsector;
+
+            sector->lines[sector->linecount] = li;
+            ++sector->linecount;
+        }
+
+        if (li->backsector != NULL && li->frontsector != li->backsector)
+        {
+            sector = li->backsector;
+
+            sector->lines[sector->linecount] = li;
+            ++sector->linecount;
+        }
+    }
+    
+    // Generate bounding boxes for sectors
+	
     sector = sectors;
     for (i=0 ; i<numsectors ; i++, sector++)
     {
 	M_ClearBox (bbox);
-	sector->lines = linebuffer;
-	li = lines;
-	for (j=0 ; j<numlines ; j++, li++)
+
+	for (j=0 ; j<sector->linecount; j++)
 	{
-	    if (li->frontsector == sector || li->backsector == sector)
-	    {
-		*linebuffer++ = li;
-		M_AddToBox (bbox, li->v1->x, li->v1->y);
-		M_AddToBox (bbox, li->v2->x, li->v2->y);
-	    }
+            li = sector->lines[j];
+
+            M_AddToBox (bbox, li->v1->x, li->v1->y);
+            M_AddToBox (bbox, li->v2->x, li->v2->y);
 	}
-	if (linebuffer - sector->lines != sector->linecount)
-	    I_Error ("P_GroupLines: miscounted");
-			
+
 	// set the degenmobj_t to the middle of the bounding box
 	sector->soundorg.x = (bbox[BOXRIGHT]+bbox[BOXLEFT])/2;
 	sector->soundorg.y = (bbox[BOXTOP]+bbox[BOXBOTTOM])/2;
@@ -576,6 +655,87 @@ void P_GroupLines (void)
 	
 }
 
+// Pad the REJECT lump with extra data when the lump is too small,
+// to simulate a REJECT buffer overflow in Vanilla Doom.
+
+static void PadRejectArray(byte *array, unsigned int len)
+{
+    unsigned int i;
+    unsigned int byte_num;
+    byte *dest;
+    unsigned int padvalue;
+
+    // Values to pad the REJECT array with:
+
+    unsigned int rejectpad[4] =
+    {
+        ((totallines * 4 + 3) & ~3) + 24,     // Size
+        0,                                    // Part of z_zone block header
+        50,                                   // PU_LEVEL
+        0x1d4a11                              // DOOM_CONST_ZONEID
+    };
+
+    // Copy values from rejectpad into the destination array.
+
+    dest = array;
+
+    for (i=0; i<len && i<sizeof(rejectpad); ++i)
+    {
+        byte_num = i % 4;
+        *dest = (rejectpad[i / 4] >> (byte_num * 8)) & 0xff;
+        ++dest;
+    }
+
+    // We only have a limited pad size.  Print a warning if the
+    // REJECT lump is too small.
+
+    if (len > sizeof(rejectpad))
+    {
+        fprintf(stderr, "PadRejectArray: REJECT lump too short to pad! (%i > %i)\n",
+                        len, (int) sizeof(rejectpad));
+
+        // Pad remaining space with 0 (or 0xff, if specified on command line).
+
+        if (M_CheckParm("-reject_pad_with_ff"))
+        {
+            padvalue = 0xff;
+        }
+        else
+        {
+            padvalue = 0xf00;
+        }
+
+        memset(array + sizeof(rejectpad), padvalue, len - sizeof(rejectpad));
+    }
+}
+
+static void P_LoadReject(int lumpnum)
+{
+    int minlength;
+    int lumplen;
+
+    // Calculate the size that the REJECT lump *should* be.
+
+    minlength = (numsectors * numsectors + 7) / 8;
+
+    // If the lump meets the minimum length, it can be loaded directly.
+    // Otherwise, we need to allocate a buffer of the correct size
+    // and pad it with appropriate data.
+
+    lumplen = W_LumpLength(lumpnum);
+
+    if (lumplen >= minlength)
+    {
+        rejectmatrix = W_CacheLumpNum(lumpnum, PU_LEVEL);
+    }
+    else
+    {
+        rejectmatrix = Z_Malloc(minlength, PU_LEVEL, &rejectmatrix);
+        W_ReadLump(lumpnum, rejectmatrix);
+
+        PadRejectArray(rejectmatrix + lumplen, minlength - lumplen);
+    }
+}
 
 //
 // P_SetupLevel
@@ -606,31 +766,18 @@ P_SetupLevel
     // Make sure all sounds are stopped before Z_FreeTags.
     S_Start ();			
 
-    
-#if 0 // UNUSED
-    if (debugfile)
-    {
-	Z_FreeTags (PU_LEVEL, MAXINT);
-	Z_FileDumpHeap (debugfile);
-    }
-    else
-#endif
-	Z_FreeTags (PU_LEVEL, PU_PURGELEVEL-1);
-
+    Z_FreeTags (PU_LEVEL, PU_PURGELEVEL-1);
 
     // UNUSED W_Profile ();
     P_InitThinkers ();
-
-    // if working with a devlopment map, reload it
-    W_Reload ();			
 	   
     // find map name
     if ( gamemode == commercial)
     {
 	if (map<10)
-	    sprintf (lumpname,"map0%i", map);
+	    DEH_snprintf(lumpname, 9, "map0%i", map);
 	else
-	    sprintf (lumpname,"map%i", map);
+	    DEH_snprintf(lumpname, 9, "map%i", map);
     }
     else
     {
@@ -655,9 +802,9 @@ P_SetupLevel
     P_LoadSubsectors (lumpnum+ML_SSECTORS);
     P_LoadNodes (lumpnum+ML_NODES);
     P_LoadSegs (lumpnum+ML_SEGS);
-	
-    rejectmatrix = W_CacheLumpNum (lumpnum+ML_REJECT,PU_LEVEL);
+
     P_GroupLines ();
+    P_LoadReject (lumpnum+ML_REJECT);
 
     bodyqueslot = 0;
     deathmatch_p = deathmatchstarts;

@@ -1,39 +1,31 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// $Log:$
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //	Cheat sequence checking.
 //
-//-----------------------------------------------------------------------------
 
 
-static const char
-rcsid[] = "$Id: m_cheat.c,v 1.1 1997/02/03 21:24:34 b1 Exp $";
 
+#include <string.h>
+
+#include "doomtype.h"
 #include "m_cheat.h"
 
 //
 // CHEAT SEQUENCE PACKAGE
 //
-
-static int		firsttime = 1;
-static unsigned char	cheat_xlate_table[256];
-
 
 //
 // Called in st_stuff module, which handles the input.
@@ -44,34 +36,46 @@ cht_CheckCheat
 ( cheatseq_t*	cht,
   char		key )
 {
-    int i;
-    int rc = 0;
+    // if we make a short sequence on a cheat with parameters, this 
+    // will not work in vanilla doom.  behave the same.
 
-    if (firsttime)
+    if (cht->parameter_chars > 0 && strlen(cht->sequence) < cht->sequence_len)
+        return false;
+    
+    if (cht->chars_read < strlen(cht->sequence))
     {
-	firsttime = 0;
-	for (i=0;i<256;i++) cheat_xlate_table[i] = SCRAMBLE(i);
+        // still reading characters from the cheat code
+        // and verifying.  reset back to the beginning 
+        // if a key is wrong
+
+        if (key == cht->sequence[cht->chars_read])
+            ++cht->chars_read;
+        else
+            cht->chars_read = 0;
+        
+        cht->param_chars_read = 0;
+    }
+    else if (cht->param_chars_read < cht->parameter_chars)
+    {
+        // we have passed the end of the cheat sequence and are 
+        // entering parameters now 
+        
+        cht->parameter_buf[cht->param_chars_read] = key;
+        
+        ++cht->param_chars_read;
     }
 
-    if (!cht->p)
-	cht->p = cht->sequence; // initialize if first time
-
-    if (*cht->p == 0)
-	*(cht->p++) = key;
-    else if
-	(cheat_xlate_table[(unsigned char)key] == *cht->p) cht->p++;
-    else
-	cht->p = cht->sequence;
-
-    if (*cht->p == 1)
-	cht->p++;
-    else if (*cht->p == 0xff) // end of sequence character
+    if (cht->chars_read >= strlen(cht->sequence)
+     && cht->param_chars_read >= cht->parameter_chars)
     {
-	cht->p = cht->sequence;
-	rc = 1;
-    }
+        cht->chars_read = cht->param_chars_read = 0;
 
-    return rc;
+        return true;
+    }
+    
+    // cheat not matched yet
+
+    return false;
 }
 
 void
@@ -79,23 +83,7 @@ cht_GetParam
 ( cheatseq_t*	cht,
   char*		buffer )
 {
-
-    unsigned char *p, c;
-
-    p = cht->sequence;
-    while (*(p++) != 1);
-    
-    do
-    {
-	c = *p;
-	*(buffer++) = c;
-	*(p++) = 0;
-    }
-    while (c && *p!=0xff );
-
-    if (*p==0xff)
-	*buffer = 0;
-
+    memcpy(buffer, cht->parameter_buf, cht->parameter_chars);
 }
 
 

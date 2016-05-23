@@ -1,34 +1,28 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 2005-2014 Simon Howard
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // DESCRIPTION:
 //  MapObj data. Map Objects or mobjs are actors, entities,
 //  thinker, take-your-pick... anything that moves, acts, or
 //  suffers state changes of more or less violent nature.
 //
-//-----------------------------------------------------------------------------
 
 
 #ifndef __D_THINK__
 #define __D_THINK__
 
 
-#ifdef __GNUG__
-#pragma interface
-#endif
 
 
 
@@ -44,8 +38,8 @@ typedef  void (*actionf_p2)( void*, void* );
 
 typedef union
 {
-  actionf_p1	acp1;
   actionf_v	acv;
+  actionf_p1	acp1;
   actionf_p2	acp2;
 
 } actionf_t;
@@ -72,8 +66,3 @@ typedef struct thinker_s
 
 
 #endif
-//-----------------------------------------------------------------------------
-//
-// $Log:$
-//
-//-----------------------------------------------------------------------------
