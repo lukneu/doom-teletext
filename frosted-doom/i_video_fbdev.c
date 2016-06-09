@@ -378,11 +378,14 @@ void I_FinishUpdate (void)
 
     y = SCREENHEIGHT;
 
-#ifdef CMAP256
     while (y--)
     {
         line_out += x_offset;
+#ifdef CMAP256
         memcpy(line_out, line_in, SCREENWIDTH); /* FB_WIDTH is bigger than Doom SCREENWIDTH... */
+#else
+        cmap_to_rgb565(line_out, line_in, SCREENWIDTH);
+#endif
         line_in += SCREENWIDTH;
         line_out += SCREENWIDTH + x_offset_end;
     }
@@ -390,14 +393,6 @@ void I_FinishUpdate (void)
     /* Start drawing from y-offset */
     lseek(fd_fb, y_offset * FB_WIDTH, SEEK_SET);
     write(fd_fb, I_VideoBuffer_FB, SCREENHEIGHT * FB_WIDTH); /* draw only portion used by doom + x-offsets */
-#else
-    while (y--)
-    {
-        cmap_to_rgb565(line_out, line_in, SCREENWIDTH);
-        write(fd_fb, line_out, FB_WIDTH * (FB_BPP_RGB565/8));
-        line_in += SCREENWIDTH;
-    }
-#endif
 
 }
 
@@ -452,7 +447,7 @@ int I_GetPaletteIndex (int r, int g, int b)
     int i;
     col_t color;
 
-    //printf("I_GetPaletteIndex\n");
+    printf("I_GetPaletteIndex\n");
 
     best = 0;
     best_diff = INT_MAX;
