@@ -1,10 +1,17 @@
 ================
-= FROSTED DOOM =
+= fbDOOM =
 ================
 
-Port of original DOOM to Frosted operating system.
-Frosted does not yet have a framebuffer nor sound driver,
-so for the moment, it just compiles and links...
+Adaptation of the original DOOM
+to be easily portable to framebuffer devices with minimal depenencies.
+Runs on:
+* Plain desktop Linux framebuffer,
+* Siglent SSA 3021X Spectrum Analyzer,
+* Frosted OS
+
+To build (example):
+* cd fbdoom
+* make CROSS_COMPILE=arm-linux-gnueabihf-
 
 
 Original readme

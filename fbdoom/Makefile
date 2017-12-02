@@ -5,7 +5,7 @@
 # $Log:$
 #
 
-ARM?=1
+CROSS_COMPILE ?= #arm-linux-gnueabihf-
 
 ifeq ($(V),1)
 	VB=''
@@ -13,24 +13,12 @@ else
 	VB=@
 endif
 
-ifeq ($(ARM),1)
-	CROSS_COMPILE = arm-frosted-eabi-
-	OBJS+=$(OBJDIR)/i_video_fbdev.o
-	CFLAGS+=-mthumb -mlittle-endian -mthumb-interwork -ffunction-sections -fdata-sections -mcpu=cortex-m3
-	CFLAGS+=-DCORE_M3 -D__frosted__
-	# COMPILER FLAGS -- No gcc libraries
-	CFLAGS+=-nostartfiles
-	# COMPILER FLAGS -- GOT/PIC
-	CFLAGS+=-fPIC -mlong-calls -fno-common -msingle-pic-base -mno-pic-data-is-text-relative -Wstack-usage=1024
-	# LINKER FLAGS
-	LDFLAGS+=-fPIC -mlong-calls -fno-common -Wl,-elf2flt -lgloss
-else
-	CFLAGS+=-m32 -fsanitize=address -Wunused-const-variable=0 
-	LIBS+=-lXext -lX11 -lnsl -lm -lSDL
-	OBJS+=$(OBJDIR)/i_video.o
-endif
+#LIBS+=-lXext -lX11 -lnsl -lm -lSDL
+#CFLAGS+=-Wunused-const-variable=0 
+#CFLAGS+=-fsanitize=address
+OBJS+=$(OBJDIR)/i_video_fbdev.o
 
-CC=  $(CROSS_COMPILE)gcc  # gcc or g++
+CC=$(CROSS_COMPILE)gcc  # gcc or g++
 CFLAGS+=-ggdb3 -Os
 LDFLAGS+=-Wl,--gc-sections
 CFLAGS+=-ggdb3 -Wall -DNORMALUNIX -DLINUX -DSNDSERV # -DUSEASM
@@ -38,7 +26,7 @@ LIBS+=-lm -lc
 
 # subdirectory for objects
 OBJDIR=build
-OUTPUT=fdoom
+OUTPUT=fbdoom
 
 SRC_DOOM = i_main.o dummy.o am_map.o doomdef.o doomstat.o dstrings.o d_event.o d_items.o d_iwad.o d_loop.o d_main.o d_mode.o d_net.o f_finale.o f_wipe.o g_game.o hu_lib.o hu_stuff.o info.o i_cdmus.o i_endoom.o i_joystick.o i_scale.o i_sound.o i_system.o i_timer.o memio.o m_argv.o m_bbox.o m_cheat.o m_config.o m_controls.o m_fixed.o m_menu.o m_misc.o m_random.o p_ceilng.o p_doors.o p_enemy.o p_floor.o p_inter.o p_lights.o p_map.o p_maputl.o p_mobj.o p_plats.o p_pspr.o p_saveg.o p_setup.o p_sight.o p_spec.o p_switch.o p_telept.o p_tick.o p_user.o r_bsp.o r_data.o r_draw.o r_main.o r_plane.o r_segs.o r_sky.o r_things.o sha1.o sounds.o statdump.o st_lib.o st_stuff.o s_sound.o tables.o v_video.o wi_stuff.o w_checksum.o w_file.o w_file_stdc_unbuffered.o w_main.o w_wad.o z_zone.o
 OBJS += $(addprefix $(OBJDIR)/, $(SRC_DOOM))
@@ -57,7 +45,6 @@ $(OUTPUT):	$(OBJS)
 	-o $(OUTPUT) $(LIBS) -Wl,-Map,$(OUTPUT).map
 	@echo [Size]
 	-$(CROSS_COMPILE)size $(OUTPUT)
-	-$(CROSS_COMPILE)flthdr $(OUTPUT)
 
 $(OBJS): | $(OBJDIR)
 
@@ -70,8 +57,4 @@ $(OBJDIR)/%.o:	%.c
 
 print:
 	@echo OBJS: $(OBJS)
-
-#############################################################
-#
-#############################################################
 
