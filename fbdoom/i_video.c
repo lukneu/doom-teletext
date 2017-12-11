@@ -558,14 +558,17 @@ void I_ShutdownGraphics(void)
 }
 
 
+void __attribute__ ((weak)) I_GetEvent(void)
+{
+
+}
 
 //
 // I_StartFrame
 //
 void I_StartFrame (void)
 {
-    // er?
-
+    I_GetEvent();
 }
 
 static void UpdateMouseButtonState(unsigned int button, boolean on)

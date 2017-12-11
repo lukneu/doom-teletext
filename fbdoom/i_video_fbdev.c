@@ -52,6 +52,7 @@ rcsid[] = "$Id: i_x.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 
 struct fb_var_screeninfo fb = {};
 int fb_scaling = 1;
+int usemouse = 0;
 
 struct color {
     uint32_t b:8;
@@ -97,14 +98,6 @@ int mouse_threshold = 10;
 // Gamma correction level to use
 
 int usegamma = 0;
-
-int usemouse = 0;
-
-// If true, keyboard mapping is ignored, like in Vanilla Doom.
-// The sensible thing to do is to disable this if you have a non-US
-// keyboard.
-
-int vanilla_keyboard_mapping = true;
 
 typedef struct
 {
@@ -167,6 +160,8 @@ void cmap_to_fb(uint8_t * out, uint8_t * in, int in_pixels)
 
 void I_InitGraphics (void)
 {
+    int i;
+
     /* Open fbdev file descriptor */
     fd_fb = open("/dev/fb0", O_RDWR);
     if (fd_fb < 0)
@@ -186,16 +181,29 @@ void I_InitGraphics (void)
             fb.red.length, fb.green.length, fb.blue.length, fb.transp.length, fb.red.offset, fb.green.offset, fb.blue.offset, fb.transp.offset);
 
     printf("I_InitGraphics: DOOM screen size: w x h: %d x %d\n", SCREENWIDTH, SCREENHEIGHT);
-    fb_scaling = fb.xres / SCREENWIDTH;
-    if (fb.yres / SCREENHEIGHT < fb_scaling)
-        fb_scaling = fb.yres / SCREENHEIGHT;
-    printf("I_InitGraphics: Auto-scaling factor: %d\n", fb_scaling);
+
+
+    i = M_CheckParmWithArgs("-scaling", 1);
+    if (i > 0) {
+        i = atoi(myargv[i + 1]);
+        fb_scaling = i;
+        printf("I_InitGraphics: Scaling factor: %d\n", fb_scaling);
+    } else {
+        fb_scaling = fb.xres / SCREENWIDTH;
+        if (fb.yres / SCREENHEIGHT < fb_scaling)
+            fb_scaling = fb.yres / SCREENHEIGHT;
+        printf("I_InitGraphics: Auto-scaling factor: %d\n", fb_scaling);
+    }
+
 
     /* Allocate screen to draw to */
 	I_VideoBuffer = (byte*)Z_Malloc (SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);  // For DOOM to draw on
 	I_VideoBuffer_FB = (byte*)malloc(fb.xres * fb.yres * (fb.bits_per_pixel/8));     // For a single write() syscall to fbdev
 
 	screenvisible = true;
+
+    extern int I_InitInput(void);
+    I_InitInput();
 }
 
 void I_ShutdownGraphics (void)
@@ -209,7 +217,7 @@ void I_StartFrame (void)
 
 }
 
-void I_GetEvent (void)
+__attribute__ ((weak)) void I_GetEvent (void)
 {
 //	event_t event;
 //	bool button_state;
@@ -379,7 +387,7 @@ void I_GetEvent (void)
 //	}
 }
 
-void I_StartTic (void)
+__attribute__ ((weak)) void I_StartTic (void)
 {
 	I_GetEvent();
 }

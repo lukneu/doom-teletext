@@ -17,12 +17,13 @@ endif
 #CFLAGS+=-Wunused-const-variable=0 
 #CFLAGS+=-fsanitize=address
 OBJS+=$(OBJDIR)/i_video_fbdev.o
+OBJS+=$(OBJDIR)/i_input_tty.o
 
 CC=$(CROSS_COMPILE)gcc  # gcc or g++
 CFLAGS+=-ggdb3 -Os
 LDFLAGS+=-Wl,--gc-sections
 CFLAGS+=-ggdb3 -Wall -DNORMALUNIX -DLINUX -DSNDSERV # -DUSEASM
-LIBS+=-lm -lc
+LIBS+=-lm -lc -lSDL
 
 # subdirectory for objects
 OBJDIR=build
