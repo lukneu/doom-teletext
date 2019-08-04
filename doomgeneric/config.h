@@ -70,13 +70,13 @@
 #undef PACKAGE_BUGREPORT
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "FDoom"
+#define PACKAGE_NAME "Doom Generic"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "FDoom 0.1"
+#define PACKAGE_STRING "Doom Generic 0.1"
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME "fdoom.tar"
+#define PACKAGE_TARNAME "doomgeneric.tar"
 
 /* Define to the home page for this package. */
 #define PACKAGE_URL ""
@@ -85,7 +85,7 @@
 #define PACKAGE_VERSION 0.1
 
 /* Change this when you create your awesome forked version */
-#define PROGRAM_PREFIX "fdoom"
+#define PROGRAM_PREFIX "doomgeneric"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1

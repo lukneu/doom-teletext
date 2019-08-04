@@ -27,8 +27,8 @@
 
 #ifdef _WIN32
 
-#define strcasecmp stricmp
-#define strncasecmp strnicmp
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
 
 #else
 

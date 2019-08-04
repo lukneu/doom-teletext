@@ -611,6 +611,8 @@ static void BuildIWADDirList(void)
 
 #endif
 #else
+	AddIWADDir(".");
+
     AddIWADDir (FILES_DIR);
 
     // Don't run this function again.
