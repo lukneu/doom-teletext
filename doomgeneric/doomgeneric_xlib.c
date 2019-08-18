@@ -105,6 +105,8 @@ void DG_Init()
 
     XSetForeground(s_Display, s_Gc, whiteColor);
 
+    XkbSetDetectableAutoRepeat(s_Display, 1, 0);
+
     // Wait for the MapNotify event
 
     while(1)
