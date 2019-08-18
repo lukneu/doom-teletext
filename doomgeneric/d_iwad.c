@@ -429,6 +429,8 @@ static char *CheckDirectoryHasIWAD(char *dir, char *iwadname)
         filename = M_StringJoin(dir, DIR_SEPARATOR_S, iwadname, NULL);
     }
 
+    printf("Trying IWAD file:%s\n", filename);
+
     if (M_FileExists(filename))
     {
         return filename;
@@ -611,8 +613,6 @@ static void BuildIWADDirList(void)
 
 #endif
 #else
-	AddIWADDir(".");
-
     AddIWADDir (FILES_DIR);
 
     // Don't run this function again.
@@ -734,6 +734,8 @@ char *D_FindIWAD(int mask, GameMission_t *mission)
     else
     {
         // Search through the list and look for an IWAD
+
+        printf("-iwad not specified, trying a few iwad names\n");
 
         result = NULL;
 
