@@ -3,6 +3,8 @@ The purpose of doomgeneric is to make porting Doom easier.
 Of course Doom is already portable but with doomgeneric it is possible with just a few functions.
 The limitation is there is no sound!
 
+To try it you will need a WAD file (game data). If you don't own the game, shareware version is freely available (doom1.wad).
+
 # porting
 Create a file named doomgeneric_yourplatform.c and just implement these functions to suit your platform.
 * DG_Init
