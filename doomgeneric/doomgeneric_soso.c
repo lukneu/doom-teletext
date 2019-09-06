@@ -61,6 +61,9 @@ static unsigned char convertToDoomKey(unsigned char scancode)
     case 0x36:
         key = KEY_RSHIFT;
         break;
+    case 0x15:
+        key = 'y';
+        break;
     default:
         break;
     }
@@ -70,6 +73,8 @@ static unsigned char convertToDoomKey(unsigned char scancode)
 
 static void addKeyToQueue(int pressed, unsigned char keyCode)
 {
+	//printf("key hex %x decimal %d\n", keyCode, keyCode);
+
         unsigned char key = convertToDoomKey(keyCode);
 
         unsigned short keyData = (pressed << 8) | key;
