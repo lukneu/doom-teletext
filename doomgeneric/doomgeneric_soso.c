@@ -205,3 +205,7 @@ int DG_GetKey(int* pressed, unsigned char* doomKey)
         return 1;
     }
 }
+
+void DG_SetWindowTitle(const char * title)
+{
+}
