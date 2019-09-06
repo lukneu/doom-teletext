@@ -1,7 +1,7 @@
 //doomgeneric for soso os
 
 #include "doomkeys.h"
-
+#include "m_argv.h"
 #include "doomgeneric.h"
 
 #include <stdio.h>
@@ -21,6 +21,9 @@ static int KeyboardFd = -1;
 static unsigned short s_KeyQueue[KEYQUEUE_SIZE];
 static unsigned int s_KeyQueueWriteIndex = 0;
 static unsigned int s_KeyQueueReadIndex = 0;
+
+static unsigned int s_PositionX = 0;
+static unsigned int s_PositionY = 0;
 
 static unsigned char convertToDoomKey(unsigned char scancode)
 {
@@ -133,6 +136,21 @@ void DG_Init()
         //enter non-blocking mode
         syscall_ioctl(KeyboardFd, 1, (void*)1);
     }
+
+    int argPosX = 0;
+    int argPosY = 0;
+
+    argPosX = M_CheckParmWithArgs("-posx", 1);
+    if (argPosX > 0)
+    {
+        sscanf(myargv[argPosX + 1], "%d", &s_PositionX);
+    }
+
+    argPosY = M_CheckParmWithArgs("-posy", 1);
+    if (argPosY > 0)
+    {
+        sscanf(myargv[argPosY + 1], "%d", &s_PositionY);
+    }
 }
 
 static void handleKeyInput()
@@ -173,7 +191,7 @@ void DG_DrawFrame()
 
         for (int i = 0; i < DOOMGENERIC_RESY; ++i)
         {
-            memcpy(FrameBuffer + i * screenWidth, DG_ScreenBuffer + i * DOOMGENERIC_RESX, DOOMGENERIC_RESX * 4);
+            memcpy(FrameBuffer + s_PositionX + (i + s_PositionY) * screenWidth, DG_ScreenBuffer + i * DOOMGENERIC_RESX, DOOMGENERIC_RESX * 4);
         }
     }
 
