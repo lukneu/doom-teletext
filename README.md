@@ -23,7 +23,7 @@ Create a file named doomgeneric_yourplatform.c and just implement these function
 |DG_SetWindowTitle    |Not required. This is for setting the window title as Doom sets this from WAD file.
 
 # platforms
-I have ported to Windows, X11, and Soso.
+I have ported to Windows, X11, and Soso. Just look at (doomgeneric_win.c or doomgeneric_xlib.c).
 
 Note that X11 port is not efficient since it generates pixmap by XDrawPoint. It can be further improved by using X11 extensions.
 
