@@ -89,7 +89,6 @@ void I_GetEvent(void);
 // The screen buffer; this is modified to draw things to the screen
 
 byte *I_VideoBuffer = NULL;
-byte *I_VideoBuffer_FB = NULL;
 
 // If true, game is running as a screensaver
 
@@ -221,7 +220,6 @@ void I_InitGraphics (void)
 
     /* Allocate screen to draw to */
 	I_VideoBuffer = (byte*)Z_Malloc (SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);  // For DOOM to draw on
-	I_VideoBuffer_FB = (byte*)malloc(s_Fb.xres * s_Fb.yres * (s_Fb.bits_per_pixel/8));     // For a single write() syscall to fbdev
 
 	screenvisible = true;
 
@@ -232,7 +230,6 @@ void I_InitGraphics (void)
 void I_ShutdownGraphics (void)
 {
 	Z_Free (I_VideoBuffer);
-	free(I_VideoBuffer_FB);
 }
 
 void I_StartFrame (void)
@@ -270,7 +267,7 @@ void I_FinishUpdate (void)
 
     /* DRAW SCREEN */
     line_in  = (unsigned char *) I_VideoBuffer;
-    line_out = (unsigned char *) I_VideoBuffer_FB;
+    line_out = (unsigned char *) DG_ScreenBuffer;
 
     y = SCREENHEIGHT;
 
@@ -293,8 +290,6 @@ void I_FinishUpdate (void)
         }
         line_in += SCREENWIDTH;
     }
-
-	memcpy(DG_ScreenBuffer, I_VideoBuffer_FB, (SCREENHEIGHT * fb_scaling * (s_Fb.bits_per_pixel / 8)) * s_Fb.xres);
 
 	DG_DrawFrame();
 }
