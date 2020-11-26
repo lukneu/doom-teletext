@@ -27,6 +27,10 @@ I have ported to Windows, X11, and Soso. Just look at (doomgeneric_win.c or doom
 
 Note that X11 port is not efficient since it generates pixmap by XDrawPoint. It can be further improved by using X11 extensions.
 
+## SDL
+
+![SDL](screenshots/sdl.png)
+
 ## Windows
 ![Windows](screenshots/windows.png)
 
