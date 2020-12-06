@@ -7,9 +7,13 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
+
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 
 #include <sosousdk.h>
-#include "../kernel/termios.h"
+#include <termios.h>
 
 static int FrameBufferFd = -1;
 static int* FrameBuffer = 0;
@@ -24,6 +28,16 @@ static unsigned int s_KeyQueueReadIndex = 0;
 
 static unsigned int s_PositionX = 0;
 static unsigned int s_PositionY = 0;
+
+static unsigned int s_ScreenWidth = 0;
+static unsigned int s_ScreenHeight = 0;
+
+enum EnFrameBuferIoctl
+{
+    FB_GET_WIDTH,
+    FB_GET_HEIGHT,
+    FB_GET_BITSPERPIXEL
+};
 
 static unsigned char convertToDoomKey(unsigned char scancode)
 {
@@ -90,12 +104,14 @@ static void addKeyToQueue(int pressed, unsigned char keyCode)
 
 struct termios orig_termios;
 
-void disableRawMode() {
+void disableRawMode()
+{
   //printf("returning original termios\n");
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
 }
 
-void enableRawMode() {
+void enableRawMode()
+{
   tcgetattr(STDIN_FILENO, &orig_termios);
   atexit(disableRawMode);
   struct termios raw = orig_termios;
@@ -111,20 +127,34 @@ void DG_Init()
 
     if (FrameBufferFd >= 0)
     {
-        FrameBuffer = mmap(NULL, DOOMGENERIC_RESX * DOOMGENERIC_RESY * 4, 0, FrameBufferFd, 0);
+        printf("Getting screen width...");
+        s_ScreenWidth = ioctl(FrameBufferFd, FB_GET_WIDTH);
+        printf("%d\n", s_ScreenWidth);
+
+        printf("Getting screen height...");
+        s_ScreenHeight = ioctl(FrameBufferFd, FB_GET_HEIGHT);
+        printf("%d\n", s_ScreenHeight);
+
+        if (0 == s_ScreenWidth || 0 == s_ScreenHeight)
+        {
+            printf("Unable to obtain screen info!");
+            exit(1);
+        }
+
+        FrameBuffer = mmap(NULL, s_ScreenWidth * s_ScreenHeight * 4, PROT_READ | PROT_WRITE, 0, FrameBufferFd, 0);
 
         if (FrameBuffer != (int*)-1)
         {
-            printf("mmap success\n");
+            printf("FrameBuffer mmap success\n");
         }
         else
         {
-            printf("mmap failed\n");
+            printf("FrameBuffermmap failed\n");
         }
     }
     else
     {
-        printf("opening device failed!\n");
+        printf("Opening FrameBuffer device failed!\n");
     }
 
     enableRawMode();
@@ -134,7 +164,7 @@ void DG_Init()
     if (KeyboardFd >= 0)
     {
         //enter non-blocking mode
-        syscall_ioctl(KeyboardFd, 1, (void*)1);
+        ioctl(KeyboardFd, 1, (void*)1);
     }
 
     int argPosX = 0;
@@ -185,13 +215,9 @@ void DG_DrawFrame()
 {
     if (FrameBuffer)
     {
-        //memcpy(FrameBuffer, DG_ScreenBuffer, DOOMGENERIC_RESX * DOOMGENERIC_RESY * 4);
-
-        const int screenWidth = 1024;
-
         for (int i = 0; i < DOOMGENERIC_RESY; ++i)
         {
-            memcpy(FrameBuffer + s_PositionX + (i + s_PositionY) * screenWidth, DG_ScreenBuffer + i * DOOMGENERIC_RESX, DOOMGENERIC_RESX * 4);
+            memcpy(FrameBuffer + s_PositionX + (i + s_PositionY) * s_ScreenWidth, DG_ScreenBuffer + i * DOOMGENERIC_RESX, DOOMGENERIC_RESX * 4);
         }
     }
 
