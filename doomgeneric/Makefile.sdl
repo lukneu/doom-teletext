@@ -12,11 +12,11 @@ else
 endif
 
 
-SDL_CFLAGS = -D_THREAD_SAFE -I/usr/local/Cellar/sdl2/2.0.10/include/SDL2
-SDL_LIBS = -L/usr/local/Cellar/sdl2/2.0.10/lib -lSDL2
+SDL_CFLAGS = -D_THREAD_SAFE -I/usr/include/SDL2
+SDL_LIBS =
 
 
-CC=gcc  # gcc or g++
+CC=clang  # gcc or g++
 CFLAGS+=-ggdb3 -Os $(INCLUDES) $(SDL_CFLAGS)
 LDFLAGS+=-Wl,-dead_strip
 CFLAGS+=-ggdb3 -Wall -DNORMALUNIX -DLINUX -DSNDSERV # -DUSEASM
