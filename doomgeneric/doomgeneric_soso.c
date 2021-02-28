@@ -12,8 +12,9 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
-#include <sosousdk.h>
 #include <termios.h>
+
+#include <soso.h>
 
 static int FrameBufferFd = -1;
 static int* FrameBuffer = 0;
@@ -225,12 +226,12 @@ void DG_DrawFrame()
 
 void DG_SleepMs(uint32_t ms)
 {
-    sleepMilliseconds(ms);
+    sleep_ms(ms);
 }
 
 uint32_t DG_GetTicksMs()
 {
-    return getUptimeMilliseconds();
+    return get_uptime_ms();
 }
 
 int DG_GetKey(int* pressed, unsigned char* doomKey)
