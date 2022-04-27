@@ -16,7 +16,7 @@ static Display *s_Display = NULL;
 static Window s_Window = NULL;
 static int s_Screen = 0;
 static GC s_Gc = 0;
-static Pixmap s_Pixmap = NULL;
+static XImage *s_Image = NULL;
 
 #define KEYQUEUE_SIZE 16
 
@@ -120,7 +120,7 @@ void DG_Init()
         }
     }
 
-    s_Pixmap = XCreatePixmap(s_Display, s_Window, DOOMGENERIC_RESX, DOOMGENERIC_RESY, depth);
+    s_Image = XCreateImage(s_Display, DefaultVisual(s_Display, s_Screen), depth, ZPixmap, 0, (char *)DG_ScreenBuffer, DOOMGENERIC_RESX, DOOMGENERIC_RESX, 32, 0);
 }
 
 
@@ -147,21 +147,7 @@ void DG_DrawFrame()
             }
         }
 
-        XSetForeground(s_Display, s_Gc, 0x0000FF);
-        XFillRectangle(s_Display, s_Pixmap, s_Gc, 0, 0, DOOMGENERIC_RESX, DOOMGENERIC_RESY);
-
-        for (int r = 0; r < DOOMGENERIC_RESY; ++r)
-        {
-            for (int c = 0; c < DOOMGENERIC_RESX; ++c)
-            {
-                unsigned int pixel = DG_ScreenBuffer[r * DOOMGENERIC_RESX + c];
-                XSetForeground(s_Display, s_Gc, pixel);
-                XDrawPoint(s_Display, s_Pixmap, s_Gc, c, r);
-            }
-        }
-
-        XCopyArea(s_Display, s_Pixmap, s_Window, s_Gc, 0, 0, DOOMGENERIC_RESX, DOOMGENERIC_RESY,
-            0, 0);
+        XPutImage(s_Display, s_Window, s_Gc, s_Image, 0, 0, 0, 0, DOOMGENERIC_RESX, DOOMGENERIC_RESY);
 
         //XFlush(s_Display);
     }
