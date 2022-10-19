@@ -25,8 +25,6 @@ Create a file named doomgeneric_yourplatform.c and just implement these function
 # platforms
 I have ported to Windows, X11, and Soso. Just look at (doomgeneric_win.c or doomgeneric_xlib.c).
 
-Note that X11 port is not efficient since it generates pixmap by XDrawPoint. It can be further improved by using X11 extensions.
-
 ## SDL
 
 ![SDL](screenshots/sdl.png)
