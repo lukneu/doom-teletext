@@ -25,10 +25,6 @@ Create a file named doomgeneric_yourplatform.c and just implement these function
 # platforms
 I have ported to Windows, X11, and Soso. Just look at (doomgeneric_win.c or doomgeneric_xlib.c).
 
-## SDL
-
-![SDL](screenshots/sdl.png)
-
 ## Windows
 ![Windows](screenshots/windows.png)
 
@@ -37,3 +33,6 @@ I have ported to Windows, X11, and Soso. Just look at (doomgeneric_win.c or doom
 
 ## X11 - FreeBSD
 ![FreeBSD](screenshots/freebsd.png)
+
+## SDL
+![SDL](screenshots/sdl.png)
