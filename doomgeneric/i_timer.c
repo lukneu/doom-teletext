@@ -22,8 +22,7 @@
 #include "doomgeneric.h"
 
 #include <stdarg.h>
-#include <stdio.h>
-#include <SDL2/SDL.h>
+
 //#include <sys/time.h>
 //#include <unistd.h>
 
@@ -92,12 +91,6 @@ void I_InitTimer(void)
 {
     // initialize timer
 
-    printf("I_InitTimer: Setting up timer.\n");
-    if (SDL_Init(SDL_INIT_TIMER) < 0)
-    {
-        printf("SDL_Init failed: %s\n", SDL_GetError());
-        atexit(SDL_Quit);
-        exit(1);
-    }
+    //SDL_Init(SDL_INIT_TIMER);
 }
 
