@@ -1297,7 +1297,7 @@ static snddevice_t music_sdl_devices[] =
     SNDDEVICE_AWE32,
 };
 
-music_module_t music_sdl_module =
+music_module_t DG_music_module =
 {
     music_sdl_devices,
     arrlen(music_sdl_devices),

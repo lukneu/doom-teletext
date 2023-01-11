@@ -54,8 +54,8 @@ char *snd_musiccmd = "";
 
 // Low-level sound and music modules we are using
 
-static sound_module_t *sound_module;
-static music_module_t *music_module;
+static sound_module_t *sound_module = NULL;
+static music_module_t *music_module = NULL;
 
 int snd_musicdevice = SNDDEVICE_SB;
 int snd_sfxdevice = SNDDEVICE_SB;
@@ -63,11 +63,11 @@ int snd_sfxdevice = SNDDEVICE_SB;
 // Sound modules
 
 extern void I_InitTimidityConfig(void);
-extern sound_module_t sound_sdl_module;
-extern sound_module_t sound_pcsound_module;
 #ifdef FEATURE_SOUND
-extern music_module_t music_sdl_module;
-#endif /* FEATURE_SOUND */
+extern sound_module_t* DG_sound_module;
+extern music_module_t* DG_music_module;
+#endif
+extern sound_module_t sound_pcsound_module;
 extern music_module_t music_opl_module;
 
 // For OPL module:
@@ -92,17 +92,7 @@ static int snd_mport = 0;
 static sound_module_t *sound_modules[] = 
 {
     #ifdef FEATURE_SOUND
-    &sound_sdl_module,
-    #endif
-    NULL,
-};
-
-// Compiled-in music modules:
-
-static music_module_t *music_modules[] =
-{
-    #ifdef FEATURE_SOUND
-    &music_sdl_module,
+    &DG_sound_module,
     #endif
     NULL,
 };
@@ -158,30 +148,9 @@ static void InitSfxModule(boolean use_sfx_prefix)
 
 static void InitMusicModule(void)
 {
-    int i;
-
 #ifdef FEATURE_SOUND
-    music_module = &music_sdl_module; return;
+    music_module = &DG_music_module;
 #endif /* FEATURE_SOUND */
-
-    /*for (i=0; music_modules[i] != NULL; ++i)
-    {
-        // Is the music device in the list of devices supported
-        // by this module?
-
-        if (SndDeviceInList(snd_musicdevice, 
-                            music_modules[i]->sound_devices,
-                            music_modules[i]->num_sound_devices))
-        {
-            // Initialize the module
-
-            if (music_modules[i]->Init())
-            {
-                music_module = music_modules[i];
-                return;
-            }
-        }
-    }*/
 }
 
 //

@@ -1059,7 +1059,7 @@ static snddevice_t sound_sdl_devices[] =
     SNDDEVICE_AWE32,
 };
 
-sound_module_t sound_sdl_module = 
+sound_module_t DG_sound_module = 
 {
     sound_sdl_devices,
     arrlen(sound_sdl_devices),
