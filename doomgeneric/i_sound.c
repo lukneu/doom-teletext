@@ -65,7 +65,9 @@ int snd_sfxdevice = SNDDEVICE_SB;
 extern void I_InitTimidityConfig(void);
 extern sound_module_t sound_sdl_module;
 extern sound_module_t sound_pcsound_module;
+#ifdef FEATURE_SOUND
 extern music_module_t music_sdl_module;
+#endif /* FEATURE_SOUND */
 extern music_module_t music_opl_module;
 
 // For OPL module:
@@ -158,7 +160,9 @@ static void InitMusicModule(void)
 {
     int i;
 
+#ifdef FEATURE_SOUND
     music_module = &music_sdl_module; return;
+#endif /* FEATURE_SOUND */
 
     /*for (i=0; music_modules[i] != NULL; ++i)
     {

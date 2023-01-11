@@ -20,6 +20,8 @@
 #ifndef __I_SWAP__
 #define __I_SWAP__
 
+#ifdef FEATURE_SOUND
+
 #include <SDL2/SDL_endian.h>
 
 // Endianess handling.
@@ -52,6 +54,15 @@
 #else
 #define doom_wtohs(x) (short int)(x)
 #endif
+
+#else
+	
+#define SHORT(x)  ((signed short) (x))
+#define LONG(x)   ((signed int) (x))
+
+#define SYS_LITTLE_ENDIAN
+
+#endif /* FEATURE_SOUND */
 
 #endif
 
