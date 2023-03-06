@@ -1,4 +1,4 @@
-//doomgeneric for soso os
+//doomgeneric for cross-platform development library 'Simple DirectMedia Layer'
 
 #include "doomkeys.h"
 #include "m_argv.h"
@@ -51,6 +51,47 @@ static unsigned char convertToDoomKey(unsigned int key){
     case SDLK_LSHIFT:
     case SDLK_RSHIFT:
       key = KEY_RSHIFT;
+      break;
+    case SDLK_LALT:
+    case SDLK_RALT:
+      key = KEY_LALT;
+      break;
+    case SDLK_F2:
+      key = KEY_F2;
+      break;
+    case SDLK_F3:
+      key = KEY_F3;
+      break;
+    case SDLK_F4:
+      key = KEY_F4;
+      break;
+    case SDLK_F5:
+      key = KEY_F5;
+      break;
+    case SDLK_F6:
+      key = KEY_F6;
+      break;
+    case SDLK_F7:
+      key = KEY_F7;
+      break;
+    case SDLK_F8:
+      key = KEY_F8;
+      break;
+    case SDLK_F9:
+      key = KEY_F9;
+      break;
+    case SDLK_F10:
+      key = KEY_F10;
+      break;
+    case SDLK_F11:
+      key = KEY_F11;
+      break;
+    case SDLK_EQUALS:
+    case SDLK_PLUS:
+      key = KEY_EQUALS;
+      break;
+    case SDLK_MINUS:
+      key = KEY_MINUS;
       break;
     default:
       key = tolower(key);
