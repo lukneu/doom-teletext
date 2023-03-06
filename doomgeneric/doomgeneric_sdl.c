@@ -3,6 +3,7 @@
 #include "doomkeys.h"
 #include "m_argv.h"
 #include "doomgeneric.h"
+#include "tt_socket.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -115,6 +116,10 @@ static void handleKeyInput(){
   while (SDL_PollEvent(&e)){
     if (e.type == SDL_QUIT){
       puts("Quit requested");
+
+      //close TCP socket
+      TCPSocketClose();
+
       atexit(SDL_Quit);
       exit(1);
     }
@@ -148,6 +153,9 @@ void DG_Init(){
   SDL_RenderPresent(renderer);
 
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, DOOMGENERIC_RESX, DOOMGENERIC_RESY);
+
+  //create tcp socket
+  TCPSocketCreate();
 }
 
 void DG_DrawFrame()
@@ -159,6 +167,9 @@ void DG_DrawFrame()
   SDL_RenderPresent(renderer);
 
   handleKeyInput();
+
+  //send tcp packet
+  TCPSocketSend(".");
 }
 
 void DG_SleepMs(uint32_t ms)
