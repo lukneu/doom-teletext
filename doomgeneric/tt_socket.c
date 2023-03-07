@@ -69,3 +69,11 @@ void TCPSocketSend(char* msg)
 {
     send(new_socket, msg, strlen(msg), 0);
 }
+
+void TCPSocketSendTTPage(uint8_t page[ROWS][COLUMNS])
+{
+    for(int i = 0; i < ROWS; i++)
+    {
+        send(new_socket, page[i], COLUMNS, 0);
+    }
+}

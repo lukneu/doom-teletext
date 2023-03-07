@@ -3,13 +3,19 @@
 #include "doomkeys.h"
 #include "m_argv.h"
 #include "doomgeneric.h"
+
 #include "tt_socket.h"
+#include "tt_pagegenerator.h"
 
 #include <stdio.h>
 #include <unistd.h>
 
 #include <stdbool.h>
 #include <SDL.h>
+
+#define TARGET_FPS 20
+
+uint8_t tt_page[ROWS][COLUMNS];
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -156,6 +162,9 @@ void DG_Init(){
 
   //create tcp socket
   TCPSocketCreate();
+
+  //init tt page
+  TT_InitPage(tt_page);
 }
 
 void DG_DrawFrame()
@@ -169,7 +178,10 @@ void DG_DrawFrame()
   handleKeyInput();
 
   //send tcp packet
-  TCPSocketSend(".");
+  TT_SetAmmunition(tt_page, 123);
+  TCPSocketSendTTPage(tt_page);
+
+  usleep( 1000000 / TARGET_FPS );
 }
 
 void DG_SleepMs(uint32_t ms)
