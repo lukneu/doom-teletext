@@ -1,9 +1,11 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "tt_pagegenerator.h"
 #include "tt_encoding.h"
 #include "tt_charset.h"
+#include "tt_sprites.h"
 
 #define PAGE_MAG 1
 #define PAGE_TENS 0
@@ -58,15 +60,95 @@ void TT_InitPage(uint8_t page[ROWS][COLUMNS])
 
     uint8_t helloWorldText[1][12] = { {'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd', '!' } };
     InsertIntoPage(page, 2, 1, 1, 12, helloWorldText);
+
+    //init statusbar placeholder
+    InsertIntoPage(page, 20, 1, 4, 40, sprite_statusbar);
+
+    //for easier debugging:
+    for (uint8_t j = 2; j < COLUMNS; j++)
+    {
+        page[19][j] = Parity('0' + ((j - 1) % 10));
+    }
+
 }
 
-//for testing purposes only
-void TT_SetAmmunition(uint8_t page[ROWS][COLUMNS], int value)
+void WriteThreeDigitNumber(uint8_t page[ROWS][COLUMNS], int value, uint8_t start_row, uint8_t start_col)
 {
-    uint8_t ammunationText[1][9] = { { TTEXT_ALPHA_RED, 'A', 'm', 'm', 'u', ':', 'x', 'y', 'z' } };
-    ammunationText[0][6] = Parity('0' + (value / 100));
-    ammunationText[0][7] = Parity('0' + ((value % 100) / 10));
-    ammunationText[0][8] = Parity('0' + (value % 10));
+    uint8_t digit_1 = value / 100;
+    uint8_t digit_2 = (value % 100) / 10;
+    uint8_t digit_3 = value % 10;
 
-    InsertIntoPage(page, 23, 1, 1, 9, ammunationText);
+    InsertIntoPage(page, start_row, start_col, 2, 2, sprite_char_array[digit_1]);
+    InsertIntoPage(page, start_row, start_col + 2, 2, 2, sprite_char_array[digit_2]);
+    InsertIntoPage(page, start_row, start_col + 4, 2, 2, sprite_char_array[digit_3]);   
+}
+
+void TT_SetActiveAmmunition(uint8_t page[ROWS][COLUMNS], int value)
+{
+    WriteThreeDigitNumber(page, value, 20, 2);
+}
+
+void TT_SetHealth(uint8_t page[ROWS][COLUMNS], int value)
+{
+    WriteThreeDigitNumber(page, value, 20, 9);
+}
+
+void TT_SetArmor(uint8_t page[ROWS][COLUMNS], int value)
+{
+    WriteThreeDigitNumber(page, value, 20, 31);
+}
+
+void TT_SetAvailableWeapons(uint8_t page[ROWS][COLUMNS], bool w2, bool w3, bool w4, bool w5, bool w6, bool w7)
+{
+    page[20][18] = w2 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
+    page[20][20] = w3 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
+    page[20][22] = w4 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
+
+    page[21][18] = w5 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
+    page[21][20] = w6 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
+    page[21][22] = w7 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
+}
+
+
+void TT_SetAmmunitionValues(uint8_t page[ROWS][COLUMNS],
+                            int bull_avail, int bull_max,
+                            int shel_avail, int shel_max,
+                            int rckt_avail, int rckt_max,
+                            int cell_avail, int cell_max)
+{
+    //BULL
+    page[23][5] = Parity('0' + (bull_avail / 100));
+    page[23][6] = Parity('0' + ((bull_avail % 100) / 10));
+    page[23][7] = Parity('0' + (bull_avail % 10));
+
+    page[23][9] = Parity('0' + (bull_max / 100));
+    page[23][10] = Parity('0' + ((bull_max % 100) / 10));
+    page[23][11] = Parity('0' + (bull_max % 10));
+
+    //SHEL
+    page[23][15] = Parity('0' + (shel_avail / 100));
+    page[23][16] = Parity('0' + ((shel_avail % 100) / 10));
+    page[23][17] = Parity('0' + (shel_avail % 10));
+
+    page[23][19] = Parity('0' + (shel_max / 100));
+    page[23][20] = Parity('0' + ((shel_max % 100) / 10));
+    page[23][21] = Parity('0' + (shel_max % 10));
+
+    //RCKT
+    page[23][25] = Parity('0' + (rckt_avail / 100));
+    page[23][26] = Parity('0' + ((rckt_avail % 100) / 10));
+    page[23][27] = Parity('0' + (rckt_avail % 10));
+
+    page[23][29] = Parity('0' + (rckt_max / 100));
+    page[23][30] = Parity('0' + ((rckt_max % 100) / 10));
+    page[23][31] = Parity('0' + (rckt_max % 10));
+
+    //CELL
+    page[23][35] = Parity('0' + (cell_avail / 100));
+    page[23][36] = Parity('0' + ((cell_avail % 100) / 10));
+    page[23][37] = Parity('0' + (cell_avail % 10));
+
+    page[23][39] = Parity('0' + (cell_max / 100));
+    page[23][40] = Parity('0' + ((cell_max % 100) / 10));
+    page[23][41] = Parity('0' + (cell_max % 10));
 }

@@ -177,8 +177,15 @@ void DG_DrawFrame()
 
   handleKeyInput();
 
+  TT_SetActiveAmmunition(tt_page, 123);
+  TT_SetHealth(tt_page, 456);
+  TT_SetArmor(tt_page, 789);
+
+  TT_SetAvailableWeapons(tt_page, false, true, false, true, false, true);
+
+  TT_SetAmmunitionValues(tt_page, 12, 345, 111, 222, 333, 444, 555, 666);
+
   //send tcp packet
-  TT_SetAmmunition(tt_page, 123);
   TCPSocketSendTTPage(tt_page);
 
   usleep( 1000000 / TARGET_FPS );
