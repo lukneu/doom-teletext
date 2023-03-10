@@ -39,11 +39,13 @@ void InsertIntoStatusbar(uint8_t target[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]
 
 void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
-    //for easier debugging:
     for (uint8_t i = 0; i < TT_ROWS; i++)
     {
         for (uint8_t j = 0; j < TT_COLUMNS; j++)
         {
+            page[i][j] = Parity(' ');
+
+            /* for easier debugging:
             page[i][j] = Parity('0' + ((j - 2) % 10));
 
             if (i + 2 == j)
@@ -51,6 +53,7 @@ void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
                 page[i][j - 1] = Parity(TTEXT_ALPHA_MAGENTA);
                 page[i][j] = Parity('X');
             }
+            */
         }
     }
 
@@ -77,8 +80,6 @@ void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
         page[row][1] = mpag_bytes[1];
     }
 
-    uint8_t helloWorldText[1][14] = { { TTEXT_ALPHA_GREEN, 'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd', '!', TTEXT_ALPHA_WHITE } };
-    InsertIntoPage(page, 2, 5, 1, 14, helloWorldText);
 }
 
 void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS])
@@ -186,17 +187,6 @@ void TT_SetAmmunitionValues(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_CO
 
 void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer, uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS])
 {
-    /*
-    for (uint8_t i = 0; i < TT_FRAMEBUFFER_ROWS; i++)
-    {
-        for (uint8_t j = 0; j < TT_FRAMEBUFFER_COLUMNS; j++)
-        {
-            rendering[i][j] = Parity('Y');
-        }
-    }
-    */
-
-
     for (int tt_row = 0; tt_row < TT_FRAMEBUFFER_ROWS; tt_row++)
     {
         for (int tt_col = 0; tt_col < TT_FRAMEBUFFER_COLUMNS; tt_col++)
@@ -212,6 +202,12 @@ void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer, uint8_t rendering[TT
 
                 for (int cell_y = 0; cell_y < 3; cell_y++) //teletext mosaic is 2*3 'pixels'
                 {
+                    if(tt_row == TT_FRAMEBUFFER_ROWS - 1 && cell_y == 2)
+                    {
+                        //no framebuffer data for this, leave black
+                        continue;
+                    }
+
                     for (int cell_x = 0; cell_x < 2; cell_x++)
                     {
                         int r = 0;
