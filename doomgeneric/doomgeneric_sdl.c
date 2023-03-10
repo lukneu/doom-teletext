@@ -2,6 +2,7 @@
 
 #include "doomkeys.h"
 #include "m_argv.h"
+#include "doomdef.h"
 #include "doomgeneric.h"
 
 #include "tt_socket.h"
@@ -13,7 +14,7 @@
 #include <stdbool.h>
 #include <SDL.h>
 
-#define TARGET_FPS 20
+#define TARGET_FPS 10
 
 uint8_t tt_page[ROWS][COLUMNS];
 
@@ -177,13 +178,40 @@ void DG_DrawFrame()
 
   handleKeyInput();
 
-  TT_SetActiveAmmunition(tt_page, 123);
-  TT_SetHealth(tt_page, 456);
-  TT_SetArmor(tt_page, 789);
+  if (DG_Player != NULL)
+  {
 
-  TT_SetAvailableWeapons(tt_page, false, true, false, true, false, true);
+    TT_SetHealth(tt_page, DG_Player->health);
+    TT_SetArmor(tt_page, DG_Player->armorpoints);
+    TT_SetAvailableWeapons(tt_page, DG_Player->weaponowned[1], DG_Player->weaponowned[2], DG_Player->weaponowned[3], DG_Player->weaponowned[4], DG_Player->weaponowned[5], DG_Player->weaponowned[6]);
+      
+    TT_SetAmmunitionValues(tt_page, DG_Player->ammo[0], DG_Player->maxammo[0], DG_Player->ammo[1], DG_Player->maxammo[1], DG_Player->ammo[3], DG_Player->maxammo[3], DG_Player->ammo[2], DG_Player->maxammo[2]);
 
-  TT_SetAmmunitionValues(tt_page, 12, 345, 111, 222, 333, 444, 555, 666);
+    TT_SetCards(tt_page, DG_Player->cards[0], DG_Player->cards[1], DG_Player->cards[2]);
+    //TODO: what about DG_Player->cards[3 / 4 / 5] ? =>  it_blueskull, it_yellowskull, it_redskull,
+
+    switch (DG_Player->readyweapon)
+    {
+      case wp_pistol:
+      case wp_chaingun:
+          TT_SetActiveAmmunition(tt_page, DG_Player->ammo[0]);
+          break;
+      case wp_shotgun:
+      case wp_supershotgun:
+          TT_SetActiveAmmunition(tt_page, DG_Player->ammo[1]);
+          break;
+      case wp_missile:
+          TT_SetActiveAmmunition(tt_page, DG_Player->ammo[3]);
+          break;
+      case wp_plasma:
+      case wp_bfg:
+          TT_SetActiveAmmunition(tt_page, DG_Player->ammo[2]);
+          break;
+      default:
+          TT_SetActiveAmmunitionToInfinite(tt_page);
+          break;
+    }
+  }
 
   //send tcp packet
   TCPSocketSendTTPage(tt_page);

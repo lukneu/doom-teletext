@@ -2,6 +2,8 @@
 
 uint32_t* DG_ScreenBuffer = 0;
 
+player_t* DG_Player = NULL;
+
 
 void dg_Create()
 {

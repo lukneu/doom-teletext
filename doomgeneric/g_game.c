@@ -68,7 +68,8 @@
 #include "r_data.h"
 #include "r_sky.h"
 
-
+// Doomgeneric
+#include "doomgeneric.h"
 
 #include "g_game.h"
 
@@ -1084,7 +1085,8 @@ void G_PlayerReborn (int player)
     secretcount = players[player].secretcount; 
 	 
     p = &players[player]; 
-    memset (p, 0, sizeof(*p)); 
+    memset (p, 0, sizeof(*p));
+    DG_Player = p;
  
     memcpy (players[player].frags, frags, sizeof(players[player].frags)); 
     players[player].killcount = killcount; 

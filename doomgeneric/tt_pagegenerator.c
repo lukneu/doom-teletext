@@ -88,6 +88,11 @@ void TT_SetActiveAmmunition(uint8_t page[ROWS][COLUMNS], int value)
     WriteThreeDigitNumber(page, value, 20, 2);
 }
 
+void TT_SetActiveAmmunitionToInfinite(uint8_t page[ROWS][COLUMNS])
+{
+    InsertIntoPage(page, 20, 2, 2, 6, sprite_text_inf);
+}
+
 void TT_SetHealth(uint8_t page[ROWS][COLUMNS], int value)
 {
     WriteThreeDigitNumber(page, value, 20, 9);
@@ -109,6 +114,12 @@ void TT_SetAvailableWeapons(uint8_t page[ROWS][COLUMNS], bool w2, bool w3, bool 
     page[21][22] = w7 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
 }
 
+void TT_SetCards(uint8_t page[ROWS][COLUMNS], bool bluecard, bool yellowcard, bool redcard)
+{
+    page[20][40] = bluecard ? Parity(TTEXT_GRAPHIC_BLUE) : Parity(TTEXT_GRAPHIC_WHITE);
+    page[21][40] = yellowcard ? Parity(TTEXT_GRAPHIC_YELLOW) : Parity(TTEXT_GRAPHIC_WHITE);
+    page[22][40] = redcard ? Parity(TTEXT_GRAPHIC_RED) : Parity(TTEXT_GRAPHIC_WHITE);
+}
 
 void TT_SetAmmunitionValues(uint8_t page[ROWS][COLUMNS],
                             int bull_avail, int bull_max,

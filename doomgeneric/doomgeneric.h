@@ -4,11 +4,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "d_player.h"
+
 #define DOOMGENERIC_RESX 640
 #define DOOMGENERIC_RESY 400
 
 
 extern uint32_t* DG_ScreenBuffer;
+extern player_t* DG_Player;
 
 
 void DG_Init();
