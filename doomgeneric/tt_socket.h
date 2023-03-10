@@ -8,6 +8,6 @@
 void TCPSocketCreate();
 void TCPSocketClose();
 void TCPSocketSend();
-void TCPSocketSendTTPage(uint8_t page[ROWS][COLUMNS]);
+void TCPSocketSendTTPage(uint8_t page[TT_ROWS][TT_COLUMNS]);
 
 #endif

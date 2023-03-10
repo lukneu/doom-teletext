@@ -16,7 +16,9 @@
 
 #define TARGET_FPS 10
 
-uint8_t tt_page[ROWS][COLUMNS];
+uint8_t tt_page[TT_ROWS][TT_COLUMNS]; //holds whole teletext page (incl mpag bytes)
+uint8_t tt_statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]; //holds statusbar
+uint8_t tt_rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]; //holds part of tt page that displays the framebuffer
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -166,6 +168,7 @@ void DG_Init(){
 
   //init tt page
   TT_InitPage(tt_page);
+  TT_InitStatusbar(tt_statusbar);
 }
 
 void DG_DrawFrame()
@@ -181,37 +184,39 @@ void DG_DrawFrame()
   if (DG_Player != NULL)
   {
 
-    TT_SetHealth(tt_page, DG_Player->health);
-    TT_SetArmor(tt_page, DG_Player->armorpoints);
-    TT_SetAvailableWeapons(tt_page, DG_Player->weaponowned[1], DG_Player->weaponowned[2], DG_Player->weaponowned[3], DG_Player->weaponowned[4], DG_Player->weaponowned[5], DG_Player->weaponowned[6]);
+    TT_SetHealth(tt_statusbar, DG_Player->health);
+    TT_SetArmor(tt_statusbar, DG_Player->armorpoints);
+    TT_SetAvailableWeapons(tt_statusbar, DG_Player->weaponowned[1], DG_Player->weaponowned[2], DG_Player->weaponowned[3], DG_Player->weaponowned[4], DG_Player->weaponowned[5], DG_Player->weaponowned[6]);
       
-    TT_SetAmmunitionValues(tt_page, DG_Player->ammo[0], DG_Player->maxammo[0], DG_Player->ammo[1], DG_Player->maxammo[1], DG_Player->ammo[3], DG_Player->maxammo[3], DG_Player->ammo[2], DG_Player->maxammo[2]);
+    TT_SetAmmunitionValues(tt_statusbar, DG_Player->ammo[0], DG_Player->maxammo[0], DG_Player->ammo[1], DG_Player->maxammo[1], DG_Player->ammo[3], DG_Player->maxammo[3], DG_Player->ammo[2], DG_Player->maxammo[2]);
 
-    TT_SetCards(tt_page, DG_Player->cards[0], DG_Player->cards[1], DG_Player->cards[2]);
+    TT_SetCards(tt_statusbar, DG_Player->cards[0], DG_Player->cards[1], DG_Player->cards[2]);
     //TODO: what about DG_Player->cards[3 / 4 / 5] ? =>  it_blueskull, it_yellowskull, it_redskull,
 
     switch (DG_Player->readyweapon)
     {
       case wp_pistol:
       case wp_chaingun:
-          TT_SetActiveAmmunition(tt_page, DG_Player->ammo[0]);
+          TT_SetActiveAmmunition(tt_statusbar, DG_Player->ammo[0]);
           break;
       case wp_shotgun:
       case wp_supershotgun:
-          TT_SetActiveAmmunition(tt_page, DG_Player->ammo[1]);
+          TT_SetActiveAmmunition(tt_statusbar, DG_Player->ammo[1]);
           break;
       case wp_missile:
-          TT_SetActiveAmmunition(tt_page, DG_Player->ammo[3]);
+          TT_SetActiveAmmunition(tt_statusbar, DG_Player->ammo[3]);
           break;
       case wp_plasma:
       case wp_bfg:
-          TT_SetActiveAmmunition(tt_page, DG_Player->ammo[2]);
+          TT_SetActiveAmmunition(tt_statusbar, DG_Player->ammo[2]);
           break;
       default:
-          TT_SetActiveAmmunitionToInfinite(tt_page);
+          TT_SetActiveAmmunitionToInfinite(tt_statusbar);
           break;
     }
   }
+  
+  TT_InsertStatusbar(tt_page, tt_statusbar);
 
   //send tcp packet
   TCPSocketSendTTPage(tt_page);

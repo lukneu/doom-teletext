@@ -70,10 +70,10 @@ void TCPSocketSend(char* msg)
     send(new_socket, msg, strlen(msg), 0);
 }
 
-void TCPSocketSendTTPage(uint8_t page[ROWS][COLUMNS])
+void TCPSocketSendTTPage(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
-    for(int i = 0; i < ROWS; i++)
+    for(int i = 0; i < TT_ROWS; i++)
     {
-        send(new_socket, page[i], COLUMNS, 0);
+        send(new_socket, page[i], TT_COLUMNS, 0);
     }
 }
