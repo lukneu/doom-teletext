@@ -14,7 +14,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void TT_InsertStatusbar(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]);
 
 void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS]);
 void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]);
@@ -31,5 +30,12 @@ void TT_SetAmmunitionValues(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_CO
                             int shel_avail, int shel_max,
                             int rckt_avail, int rckt_max,
                             int cell_avail, int cell_max);
+
+void TT_InsertStatusbar(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]);
+
+//rendering
+void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer, uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]);
+
+void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]);
 
 #endif

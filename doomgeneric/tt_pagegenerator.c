@@ -24,11 +24,6 @@ void InsertIntoPage(uint8_t target[TT_ROWS][TT_COLUMNS], int startRow, int start
     }
 }
 
-void TT_InsertStatusbar(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS])
-{
-    InsertIntoPage(page, 20, 0, TT_STATUSBAR_ROWS, TT_STATUSBAR_COLUMNS, statusbar);
-}
-
 //target array is of size 4*40
 //source array does not have to have correct parity bit, parity bit is set by this function
 void InsertIntoStatusbar(uint8_t target[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int startRow, int startColumn, int height, int width, uint8_t source[height][width])
@@ -58,8 +53,6 @@ void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
             }
         }
     }
-
-
 
     uint8_t mpag_bytes[2];
 
@@ -189,4 +182,84 @@ void TT_SetAmmunitionValues(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_CO
     statusbar[3][37] = Parity('0' + (cell_max / 100));
     statusbar[3][38] = Parity('0' + ((cell_max % 100) / 10));
     statusbar[3][39] = Parity('0' + (cell_max % 10));
+}
+
+void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer, uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS])
+{
+    /*
+    for (uint8_t i = 0; i < TT_FRAMEBUFFER_ROWS; i++)
+    {
+        for (uint8_t j = 0; j < TT_FRAMEBUFFER_COLUMNS; j++)
+        {
+            rendering[i][j] = Parity('Y');
+        }
+    }
+    */
+
+
+    for (int tt_row = 0; tt_row < TT_FRAMEBUFFER_ROWS; tt_row++)
+    {
+        for (int tt_col = 0; tt_col < TT_FRAMEBUFFER_COLUMNS; tt_col++)
+        {
+            if(tt_col == 0)
+            {
+                rendering[tt_row][tt_col] = TTEXT_GRAPHIC_WHITE;
+            }
+            else
+            {
+                int pixelPos = 1;
+                uint8_t mosaicMask = 0;
+
+                for (int cell_y = 0; cell_y < 3; cell_y++) //teletext mosaic is 2*3 'pixels'
+                {
+                    for (int cell_x = 0; cell_x < 2; cell_x++)
+                    {
+                        int r = 0;
+                        int g = 0;
+                        int b = 0;
+                        int brightness;
+
+                        //4*4 pixels of DG_ScreenBuffer result in 1 'pixel' in teletext mosaic
+                        for (int region_y = 0; region_y < 4; region_y++)
+                        {
+                            for (int region_x = 0; region_x < 4; region_x++)
+                            {
+                                int src_pixel_value = DG_ScreenBuffer[(12 * tt_row + 4 * cell_y + region_y) * 320 /*DOOMGENERIC_RESX*/ + (8 * (tt_col - 1) + 4 * cell_x + region_x + 4)]; //+4 because first and last 4 pixels of row are ignored
+                                r += (uint8_t)(src_pixel_value >> 16);
+                                g += (uint8_t)(src_pixel_value >> 8);
+                                b += (uint8_t)src_pixel_value;
+                            }
+                        }
+
+                        r = r / 16;
+                        g = g / 16;
+                        b = b / 16;
+
+                        brightness = 0.21f * r + 0.72f * g + 0.07f * b;
+
+                        if(brightness > 60)
+                        {
+                            mosaicMask += pixelPos;
+                        }
+
+                        pixelPos = pixelPos * 2;
+                    }
+                }
+
+                rendering[tt_row][tt_col] = GetTeletextEncodingMosaicByBitMask(mosaicMask);
+            }
+        }
+    }
+}
+
+void TT_InsertStatusbar(uint8_t page[TT_ROWS][TT_COLUMNS],
+                        uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS])
+{
+    InsertIntoPage(page, 20, 0, TT_STATUSBAR_ROWS, TT_STATUSBAR_COLUMNS, statusbar);
+}
+
+void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS],
+                            uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS])
+{
+    InsertIntoPage(page, 3, 0, TT_FRAMEBUFFER_ROWS, TT_FRAMEBUFFER_COLUMNS, rendering);
 }

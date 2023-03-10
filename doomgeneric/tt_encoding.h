@@ -1,7 +1,7 @@
-#include <stdint.h>
-
 #ifndef TT_ENCODING_H
 #define TT_ENCODING_H
+
+#include <stdint.h>
 
 uint8_t Hamming84(uint8_t d);
 uint8_t Parity(uint8_t d);

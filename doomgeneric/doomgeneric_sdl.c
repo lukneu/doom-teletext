@@ -218,6 +218,10 @@ void DG_DrawFrame()
   
   TT_InsertStatusbar(tt_page, tt_statusbar);
 
+  TT_RenderInMosaicBlackWhite(DG_ScreenBuffer, tt_rendering);
+
+  TT_InsertGameRendering(tt_page, tt_rendering);
+
   //send tcp packet
   TCPSocketSendTTPage(tt_page);
 

@@ -1,6 +1,9 @@
 #ifndef TT_CHARSET_H
 #define TT_CHARSET_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 // from https://galax.xyz/TELETEXT/CHARSET.HTM
 //    
 // 0x80 Nothing          0x90 Nothing
@@ -46,5 +49,14 @@
 #define TTEXT_NEW_BACKGROUND 0x9D
 #define TTEXT_HOLD_GRAPHICS 0x9E
 #define TTEXT_RELEASE_GRAPHICS 0x9F
+
+uint8_t GetTeletextEncodingMosaic(bool pixelTopLeft,
+                                  bool pixelTopRight,
+                                  bool pixelCenterLeft,
+                                  bool pixelCenterRight,
+                                  bool pixelBottomLeft,
+                                  bool pixelBottomRight);
+
+uint8_t GetTeletextEncodingMosaicByBitMask(uint8_t mosaicMask);
 
 #endif
