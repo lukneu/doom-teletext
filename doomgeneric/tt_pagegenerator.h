@@ -19,6 +19,11 @@ void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS]);
 
 void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]);
 
+//debug info
+void TT_ShowFPS(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t value);
+
+void TT_HideFPS(uint8_t page[TT_ROWS][TT_COLUMNS]);
+
 //manipulate statusbar
 void TT_SetActiveAmmunition(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value);
 

@@ -14,13 +14,16 @@
 #include <stdbool.h>
 #include <SDL.h>
 
-#define TARGET_FPS 6
+#define FPS_START 6
+#define FPS_MAX 35
+#define FPS_MIN 1
 
 uint8_t tt_page[TT_ROWS][TT_COLUMNS]; //holds whole teletext page (incl mpag bytes)
 uint8_t tt_statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]; //holds statusbar
 uint8_t tt_rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]; //holds part of tt page that displays the framebuffer
 
 uint current_frame = 0;
+uint8_t fps = FPS_START;
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -114,6 +117,23 @@ static unsigned char convertToDoomKey(unsigned int key){
 }
 
 static void addKeyToQueue(int pressed, unsigned int keyCode){
+
+  if(keyCode == SDLK_o && pressed == 0)
+  {
+    if(fps < FPS_MAX)
+    {
+      fps++;
+    }
+  }
+
+  if(keyCode == SDLK_l && pressed == 0)
+  {
+    if(fps > FPS_MIN)
+    {
+      fps--;
+    }
+  }
+
   unsigned char key = convertToDoomKey(keyCode);
 
   unsigned short keyData = (pressed << 8) | key;
@@ -122,6 +142,7 @@ static void addKeyToQueue(int pressed, unsigned int keyCode){
   s_KeyQueueWriteIndex++;
   s_KeyQueueWriteIndex %= KEYQUEUE_SIZE;
 }
+
 static void handleKeyInput(){
   SDL_Event e;
   while (SDL_PollEvent(&e)){
@@ -145,7 +166,6 @@ static void handleKeyInput(){
     }
   }
 }
-
 
 void DG_Init(){
   window = SDL_CreateWindow("DOOM",
@@ -225,10 +245,13 @@ void DG_DrawFrame()
   if(current_frame % 40 > 20)
   {
     TT_RenderInMosaicBlackWhite(DG_ScreenBuffer, tt_rendering, true);
+    TT_ShowFPS(tt_page, fps);
   }
   else
   {
     TT_RenderInMosaicBlackWhite(DG_ScreenBuffer, tt_rendering, false);
+    TT_ShowFPS(tt_page, fps);
+    //TT_HideFPS(tt_page);
   }
 
   TT_InsertGameRendering(tt_page, tt_rendering);
@@ -236,7 +259,7 @@ void DG_DrawFrame()
   //send tcp packet
   TCPSocketSendTTPage(tt_page);
 
-  usleep( 1000000 / TARGET_FPS );
+  usleep(1000000 / fps);
 }
 
 void DG_SleepMs(uint32_t ms)

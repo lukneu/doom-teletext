@@ -107,6 +107,21 @@ void WriteThreeDigitNumber(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COL
     InsertIntoStatusbar(statusbar, start_row, start_col + 4, 2, 2, sprite_char_array[digit_3]);
 }
 
+void TT_ShowFPS(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t value)
+{
+    uint8_t char_1 = value > 9 ? '0' + (value / 10) : 0x20; 
+    uint8_t char_2 = '0' + (value % 10);
+
+    uint8_t fpsBytes[1][7] = { { TTEXT_ALPHA_YELLOW, char_1, char_2, ' ', 'F', 'P', 'S' } };
+    InsertIntoPage(page, 1, 33, 1, 8, fpsBytes);
+}
+
+void TT_HideFPS(uint8_t page[TT_ROWS][TT_COLUMNS])
+{
+    uint8_t fpsBytes[1][7] = { { ' ', ' ', ' ', ' ', ' ', ' ', ' ' } };
+    InsertIntoPage(page, 1, 33, 1, 8, fpsBytes);
+}
+
 void TT_SetActiveAmmunition(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value)
 {
     WriteThreeDigitNumber(statusbar, value, 0, 1);
