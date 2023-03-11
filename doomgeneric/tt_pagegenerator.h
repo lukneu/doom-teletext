@@ -16,15 +16,26 @@
 
 
 void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS]);
+
 void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]);
 
-//statusbar
+//manipulate statusbar
 void TT_SetActiveAmmunition(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value);
+
 void TT_SetActiveAmmunitionToInfinite(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]);
+
 void TT_SetArmor(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value);
+
 void TT_SetHealth(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value);
-void TT_SetAvailableWeapons(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], bool w2, bool w3, bool w4, bool w5, bool w6, bool w7);
-void TT_SetCards(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], bool bluecard, bool yellowcard, bool redcard);
+
+void TT_SetAvailableWeapons(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
+                            bool w2, bool w3, bool w4, bool w5, bool w6, bool w7);
+
+void TT_SetCards(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
+                 bool bluecard,
+                 bool yellowcard,
+                 bool redcard);
+
 void TT_SetAmmunitionValues(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
                             int bull_avail, int bull_max,
                             int shel_avail, int shel_max,
@@ -33,9 +44,12 @@ void TT_SetAmmunitionValues(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_CO
 
 void TT_InsertStatusbar(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]);
 
-//rendering
-void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer, uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]);
+//manipulate rendering area
+void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer,
+                                 uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                                 bool separate_graphics);
 
-void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]);
+void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS],
+                            uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]);
 
 #endif

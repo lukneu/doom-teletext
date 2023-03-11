@@ -14,11 +14,13 @@
 #include <stdbool.h>
 #include <SDL.h>
 
-#define TARGET_FPS 10
+#define TARGET_FPS 6
 
 uint8_t tt_page[TT_ROWS][TT_COLUMNS]; //holds whole teletext page (incl mpag bytes)
 uint8_t tt_statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]; //holds statusbar
 uint8_t tt_rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]; //holds part of tt page that displays the framebuffer
+
+uint current_frame = 0;
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -173,6 +175,8 @@ void DG_Init(){
 
 void DG_DrawFrame()
 {
+  current_frame++;
+
   SDL_UpdateTexture(texture, NULL, DG_ScreenBuffer, DOOMGENERIC_RESX*sizeof(uint32_t));
 
   SDL_RenderClear(renderer);
@@ -183,7 +187,6 @@ void DG_DrawFrame()
 
   if (DG_Player != NULL)
   {
-
     TT_SetHealth(tt_statusbar, DG_Player->health);
     TT_SetArmor(tt_statusbar, DG_Player->armorpoints);
     TT_SetAvailableWeapons(tt_statusbar, DG_Player->weaponowned[1], DG_Player->weaponowned[2], DG_Player->weaponowned[3], DG_Player->weaponowned[4], DG_Player->weaponowned[5], DG_Player->weaponowned[6]);
@@ -218,7 +221,15 @@ void DG_DrawFrame()
   
   TT_InsertStatusbar(tt_page, tt_statusbar);
 
-  TT_RenderInMosaicBlackWhite(DG_ScreenBuffer, tt_rendering);
+  //switch between modes, not sure yet which one is better.
+  if(current_frame % 40 > 20)
+  {
+    TT_RenderInMosaicBlackWhite(DG_ScreenBuffer, tt_rendering, true);
+  }
+  else
+  {
+    TT_RenderInMosaicBlackWhite(DG_ScreenBuffer, tt_rendering, false);
+  }
 
   TT_InsertGameRendering(tt_page, tt_rendering);
 

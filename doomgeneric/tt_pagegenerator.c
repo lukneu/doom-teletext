@@ -93,7 +93,10 @@ void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]
     }
 }
 
-void WriteThreeDigitNumber(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value, uint8_t start_row, uint8_t start_col)
+void WriteThreeDigitNumber(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
+                           int value,
+                           uint8_t start_row,
+                           uint8_t start_col)
 {
     uint8_t digit_1 = value / 100;
     uint8_t digit_2 = (value % 100) / 10;
@@ -124,7 +127,8 @@ void TT_SetArmor(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int
     WriteThreeDigitNumber(statusbar, value, 0, 30);
 }
 
-void TT_SetAvailableWeapons(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], bool w2, bool w3, bool w4, bool w5, bool w6, bool w7)
+void TT_SetAvailableWeapons(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
+                            bool w2, bool w3, bool w4, bool w5, bool w6, bool w7)
 {
     statusbar[0][16] = w2 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
     statusbar[0][18] = w3 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
@@ -135,7 +139,8 @@ void TT_SetAvailableWeapons(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_CO
     statusbar[1][20] = w7 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
 }
 
-void TT_SetCards(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], bool bluecard, bool yellowcard, bool redcard)
+void TT_SetCards(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
+                 bool bluecard, bool yellowcard, bool redcard)
 {
     statusbar[0][38] = bluecard ? Parity(TTEXT_GRAPHIC_BLUE) : Parity(TTEXT_GRAPHIC_WHITE);
     statusbar[1][38] = yellowcard ? Parity(TTEXT_GRAPHIC_YELLOW) : Parity(TTEXT_GRAPHIC_WHITE);
@@ -185,8 +190,14 @@ void TT_SetAmmunitionValues(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_CO
     statusbar[3][39] = Parity('0' + (cell_max % 10));
 }
 
-void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer, uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS])
+void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer,
+                                 uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                                 bool separate_graphics)
 {
+    //Source image is 320 pixels in width, we can only display
+    // 312 in CONTIGUOUS mode for mosaics, and 308 in SEPARATE mode.
+    uint8_t ignoredPixels = separate_graphics ? 12 : 8;
+
     for (int tt_row = 0; tt_row < TT_FRAMEBUFFER_ROWS; tt_row++)
     {
         for (int tt_col = 0; tt_col < TT_FRAMEBUFFER_COLUMNS; tt_col++)
@@ -194,6 +205,10 @@ void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer, uint8_t rendering[TT
             if(tt_col == 0)
             {
                 rendering[tt_row][tt_col] = TTEXT_GRAPHIC_WHITE;
+            }
+            else if (separate_graphics && tt_col == 1)
+            {
+                rendering[tt_row][tt_col] = TTEXT_SEPARATED_GRAPHICS;
             }
             else
             {
@@ -220,7 +235,8 @@ void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer, uint8_t rendering[TT
                         {
                             for (int region_x = 0; region_x < 4; region_x++)
                             {
-                                int src_pixel_value = DG_ScreenBuffer[(12 * tt_row + 4 * cell_y + region_y) * 320 /*DOOMGENERIC_RESX*/ + (8 * (tt_col - 1) + 4 * cell_x + region_x + 4)]; //+4 because first and last 4 pixels of row are ignored
+                                int src_pixel_value = DG_ScreenBuffer[(12 * tt_row + 4 * cell_y + region_y) * 320 /*DOOMGENERIC_RESX*/ +
+                                                                      (8 * (tt_col - 1) + 4 * cell_x + region_x + ignoredPixels / 2)];
                                 r += (uint8_t)(src_pixel_value >> 16);
                                 g += (uint8_t)(src_pixel_value >> 8);
                                 b += (uint8_t)src_pixel_value;
