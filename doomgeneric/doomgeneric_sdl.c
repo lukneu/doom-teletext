@@ -19,13 +19,19 @@
 #define FPS_MIN 1
 #define FPS_DISPLAY_SECONDS 2
 
+enum GraphicMode {MOSAIC_SEPARATED,
+                  MOSAIC_CONTIGUOUS,
+                  NumberOfGraphicModes};
+
+enum GraphicMode graphicMode = 0;
+
 uint8_t tt_page[TT_ROWS][TT_COLUMNS]; //holds whole teletext page (incl mpag bytes)
 uint8_t tt_statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]; //holds statusbar
 uint8_t tt_rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]; //holds part of tt page that displays the framebuffer
 
 uint current_frame = 0;
 uint8_t fps = FPS_START;
-uint8_t frames_display_fps = 0;
+uint8_t frames_display_config = 0;
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -119,27 +125,6 @@ static unsigned char convertToDoomKey(unsigned int key){
 }
 
 static void addKeyToQueue(int pressed, unsigned int keyCode){
-
-  if(keyCode == SDLK_o && pressed == 0)
-  {
-    if(fps < FPS_MAX)
-    {
-      fps++;
-      frames_display_fps = fps * FPS_DISPLAY_SECONDS;
-      TT_ShowFPS(tt_page, fps);
-    }
-  }
-
-  if(keyCode == SDLK_l && pressed == 0)
-  {
-    if(fps > FPS_MIN)
-    {
-      fps--;
-      frames_display_fps = fps * FPS_DISPLAY_SECONDS;
-      TT_ShowFPS(tt_page, fps);
-    }
-  }
-
   unsigned char key = convertToDoomKey(keyCode);
 
   unsigned short keyData = (pressed << 8) | key;
@@ -161,6 +146,42 @@ static void handleKeyInput(){
       atexit(SDL_Quit);
       exit(1);
     }
+
+    if (e.type == SDL_KEYDOWN &&
+                  ( e.key.keysym.sym == SDLK_g ||
+                    e.key.keysym.sym == SDLK_o ||
+                    e.key.keysym.sym == SDLK_l ))
+    {
+      switch (e.key.keysym.sym)
+      {
+        case SDLK_g:
+          graphicMode++;
+          if (graphicMode == NumberOfGraphicModes)
+          {
+            graphicMode = 0;
+          }
+          break;
+        case SDLK_o:
+          if(fps < FPS_MAX)
+          {
+            fps++;
+          }
+          break;
+        case SDLK_l:
+          if(fps > FPS_MIN)
+          { 
+            fps--;
+          }
+          break;
+        default:
+          break;
+      }
+
+      frames_display_config = fps * FPS_DISPLAY_SECONDS;
+      TT_ShowDebugInfo(tt_page, fps, graphicMode);
+      return;
+    }
+
     if (e.type == SDL_KEYDOWN) {
       //KeySym sym = XKeycodeToKeysym(s_Display, e.xkey.keycode, 0);
       //printf("KeyPress:%d sym:%d\n", e.xkey.keycode, sym);
@@ -203,16 +224,16 @@ void DG_DrawFrame()
 {
   current_frame++;
   
-  switch (frames_display_fps)
+  switch (frames_display_config)
   {
     case 0:
       break;
     case 1:
-      TT_HideFPS(tt_page);
-      frames_display_fps--;
+      TT_HideDebugInfo(tt_page);
+      frames_display_config--;
       break;
     default:
-      frames_display_fps--;
+      frames_display_config--;
       break;
   }
 
@@ -260,14 +281,17 @@ void DG_DrawFrame()
   
   TT_InsertStatusbar(tt_page, tt_statusbar);
 
-  //switch between modes, not sure yet which one is better.
-  if(current_frame % 40 > 20)
+  switch (graphicMode)
   {
-    TT_RenderInMosaicBlackWhite(DG_ScreenBuffer, tt_rendering, true);
-  }
-  else
-  {
-    TT_RenderInMosaicBlackWhite(DG_ScreenBuffer, tt_rendering, false);
+    case MOSAIC_SEPARATED:
+      TT_RenderInMosaicBlackWhite(DG_ScreenBuffer, tt_rendering, true);
+      break;
+    case MOSAIC_CONTIGUOUS:
+      TT_RenderInMosaicBlackWhite(DG_ScreenBuffer, tt_rendering, false);
+      break;
+    default:
+        puts("Invalid graphic mode");
+        exit(-1);
   }
 
   TT_InsertGameRendering(tt_page, tt_rendering);
