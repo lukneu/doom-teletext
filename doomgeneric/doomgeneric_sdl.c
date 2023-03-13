@@ -17,7 +17,7 @@
 #define FPS_START 6
 #define FPS_MAX 35
 #define FPS_MIN 1
-#define FPS_DISPLAY_SECONDS 2
+#define DISPLAY_SECONDS 4
 
 enum GraphicMode {MOSAIC_SEPARATED,
                   MOSAIC_CONTIGUOUS,
@@ -32,6 +32,8 @@ uint8_t tt_rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]; //holds part 
 uint current_frame = 0;
 uint8_t fps = FPS_START;
 uint8_t frames_display_config = 0;
+
+uint8_t frames_display_message = 0;
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -177,7 +179,7 @@ static void handleKeyInput(){
           break;
       }
 
-      frames_display_config = fps * FPS_DISPLAY_SECONDS;
+      frames_display_config = fps * DISPLAY_SECONDS;
       TT_ShowDebugInfo(tt_page, fps, graphicMode);
       return;
     }
@@ -237,6 +239,19 @@ void DG_DrawFrame()
       break;
   }
 
+  switch (frames_display_message)
+  {
+    case 0:
+      break;
+    case 1:
+      TT_ClearLine(tt_page, 2);
+      frames_display_message--;
+      break;
+    default:
+      frames_display_message--;
+      break;
+  }
+
   SDL_UpdateTexture(texture, NULL, DG_ScreenBuffer, DOOMGENERIC_RESX*sizeof(uint32_t));
 
   SDL_RenderClear(renderer);
@@ -292,6 +307,13 @@ void DG_DrawFrame()
     default:
         puts("Invalid graphic mode");
         exit(-1);
+  }
+
+  if(DG_NewMessageAvailable)
+  {
+    TT_WriteTextToLine(tt_page, 2, DG_HintMessage);
+    frames_display_message = fps * DISPLAY_SECONDS;
+    DG_NewMessageAvailable = false;
   }
 
   TT_InsertGameRendering(tt_page, tt_rendering);

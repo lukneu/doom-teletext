@@ -37,6 +37,8 @@
 
 #include "doomstat.h"
 
+#include "doomgeneric.h"
+
 // Data.
 #include "dstrings.h"
 #include "sounds.h"
@@ -420,6 +422,8 @@ void HU_Ticker(void)
 	    || (plr->message && message_dontfuckwithme))
 	{
 	    HUlib_addMessageToSText(&w_message, 0, plr->message);
+	    strncpy(DG_HintMessage, plr->message, 39);
+	    DG_NewMessageAvailable = true;
 	    plr->message = 0;
 	    message_on = true;
 	    message_counter = HU_MSGTIMEOUT;

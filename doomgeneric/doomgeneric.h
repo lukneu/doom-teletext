@@ -12,6 +12,8 @@
 
 extern uint32_t* DG_ScreenBuffer;
 extern player_t* DG_Player;
+extern char DG_HintMessage[39];
+extern boolean DG_NewMessageAvailable;
 
 
 void DG_Init();

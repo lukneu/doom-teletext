@@ -24,6 +24,10 @@ void TT_ShowDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t fpsValue, uint8
 
 void TT_HideDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS]);
 
+void TT_WriteTextToLine(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line, char* string);
+
+void TT_ClearLine(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line);
+
 //manipulate statusbar
 void TT_SetActiveAmmunition(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value);
 

@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "tt_pagegenerator.h"
 #include "tt_encoding.h"
@@ -45,7 +46,8 @@ void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
         {
             page[i][j] = Parity(' ');
 
-            /* for easier debugging:
+            /*
+            //for easier debugging:
             page[i][j] = Parity('0' + ((j - 2) % 10));
 
             if (i + 2 == j)
@@ -93,6 +95,35 @@ void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]
     }
 }
 
+void TT_WriteTextToLine(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line, char* string)
+{
+    TT_ClearLine(page, line); //Just in case the old message was longer than the current one
+
+    page[line][2] = Parity(TTEXT_ALPHA_RED);
+    int strLen = strlen(string);
+
+    if(strLen > 36)
+    {
+        strLen = 36;
+        page[line][39] = Parity('.');
+        page[line][40] = Parity('.');
+        page[line][41] = Parity('.');
+    }
+
+    for(int i = 0; i < strLen; i++)
+    {
+        page[line][3 + i] = Parity(string[i]);
+    }
+}
+
+void TT_ClearLine(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line)
+{
+    for(int i = 0; i < 40; i++)
+    {
+        page[line][2 + i] = Parity(' ');
+    }
+}
+
 void WriteThreeDigitNumber(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
                            int value,
                            uint8_t start_row,
@@ -116,12 +147,12 @@ void TT_ShowDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t fpsValue, uint8
     InsertIntoPage(page, 1, 33, 1, 7, fpsBytes);
 
     uint8_t grapicModeBytes[1][16] = { { TTEXT_ALPHA_YELLOW, 'G', 'r', 'a', 'p', 'h', 'i', 'c', ' ', 'm', 'o', 'd', 'e', ':', ' ', '0' + graphicMode} };
-    InsertIntoPage(page, 1, 1, 1, 16, grapicModeBytes);
+    InsertIntoPage(page, 1, 0, 1, 16, grapicModeBytes);
 }
 
 void TT_HideDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
-    for (int i = 0; i <= 40; i++)
+    for (int i = 0; i < 40; i++)
     {
         page[1][i + 2] = ' ';
     }
