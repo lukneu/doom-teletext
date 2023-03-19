@@ -3,9 +3,7 @@
 
 #include "tt_pagegenerator.h"
 
-#define PORT 8080
-
-void TCPSocketCreate();
+void TCPSocketCreate(char* targetIP, int targetPort);
 void TCPSocketClose();
 void TCPSocketSend();
 void TCPSocketSendTTPage(uint8_t page[TT_ROWS][TT_COLUMNS]);

@@ -214,8 +214,8 @@ void DG_Init(){
 
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, DOOMGENERIC_RESX, DOOMGENERIC_RESY);
 
-  //create tcp socket
-  TCPSocketCreate();
+  //create tcp client
+  TCPSocketCreate("127.0.0.1", 8080); //TODO: use argv arguments
 
   //init tt page
   TT_InitPage(tt_page);
