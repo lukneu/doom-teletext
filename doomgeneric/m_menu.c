@@ -74,8 +74,8 @@ int			showMessages = 1;
 	
 
 // Blocky mode, has default, 0 = high, 1 = normal
-int			detailLevel = 0;
-int			screenblocks = 10;
+int			detailLevel = 1;
+int			screenblocks = 11; //no status bar
 
 // temp for screenblocks (0-9)
 int			screenSize;
@@ -1230,7 +1230,6 @@ void M_SizeDisplay(int choice)
 	break;
     }
 	
-
     R_SetViewSize (screenblocks, detailLevel);
 }
 
