@@ -20,6 +20,8 @@ void TCPSocketCreate(char* targetIP, int targetPort)
     strncpy(ip, targetIP, 15);
     port = targetPort;
 
+    printf("TCP socket parameters: %s:%d\n", targetIP, targetPort);
+
     int status;
     struct sockaddr_in serv_addr;
 

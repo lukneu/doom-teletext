@@ -214,8 +214,32 @@ void DG_Init(){
 
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, DOOMGENERIC_RESX, DOOMGENERIC_RESY);
 
+  //default tcp parameters
+  char* tcp_server_ip = "127.0.0.1";
+  int tcp_server_port = 8080;
+
+  int tt_ip_param = M_CheckParmWithArgs("-tt_stream_ip", 1);
+  if (tt_ip_param > 0)
+  {
+    tcp_server_ip = myargv[tt_ip_param + 1];
+  }
+  else
+  {
+    printf("Argument '-tt_stream_ip' was not provided. Using %s\n", tcp_server_ip);
+  }
+
+  int tt_port_param = M_CheckParmWithArgs("-tt_stream_port", 1);
+  if (tt_port_param > 0)
+  {
+    tcp_server_port = atoi(myargv[tt_port_param + 1]);
+  }
+  else
+  {
+    printf("Argument '-tt_stream_port' was not provided. Using %d\n", tcp_server_port);
+  }
+  
   //create tcp client
-  TCPSocketCreate("127.0.0.1", 8080); //TODO: use argv arguments
+  TCPSocketCreate(tcp_server_ip, tcp_server_port);
 
   //init tt page
   TT_InitPage(tt_page);
