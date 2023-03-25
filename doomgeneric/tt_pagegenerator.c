@@ -95,7 +95,7 @@ void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]
     }
 }
 
-void TT_WriteTextToLine(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line, char* string)
+void TT_WriteHintMessage(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line, char* string)
 {
     TT_ClearLine(page, line); //Just in case the old message was longer than the current one
 
@@ -325,4 +325,60 @@ void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS],
                             uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS])
 {
     InsertIntoPage(page, 3, 0, TT_FRAMEBUFFER_ROWS, TT_FRAMEBUFFER_COLUMNS, rendering);
+}
+
+void EncodeString(char* sourceString, uint8_t* targetArray, bool make_uppercase)
+{
+    size_t strLen = strlen(sourceString);
+
+    for(int i = 0; i < strLen; i++)
+    {
+        if(make_uppercase && sourceString[i] >= 'a' && sourceString[i] <= 'z')
+        {
+            targetArray[i] = Parity(sourceString[i] - 32);
+        }
+        else
+        {
+            targetArray[i] = Parity(sourceString[i]);
+        }
+    }
+}
+
+void TT_InsertQuitMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], char* msg)
+{
+    char string[strlen(msg)];
+    strcpy(string, msg);
+
+    char delimiter[] = "\n";
+    char *linePtr;
+
+    linePtr = strtok(string, delimiter);
+
+    int msgLine = 1;
+
+    while(linePtr != NULL)
+    {
+        int lineLen = strlen(linePtr);
+
+        if(lineLen >= 38)
+        {
+            lineLen = 38;
+        }
+
+        int startCol = 20 - lineLen / 2;
+
+        rendering[5 + msgLine][startCol - 1] = Parity(TTEXT_ALPHA_RED);
+
+        uint8_t stringArray[lineLen];
+        EncodeString(linePtr, stringArray, true);
+        for (int i = 0; i < lineLen; i++)
+        {
+            rendering[5 + msgLine][startCol + i] = stringArray[i];
+        }
+
+        rendering[5 + msgLine][startCol + lineLen] = Parity(TTEXT_GRAPHIC_WHITE);
+
+        linePtr = strtok(NULL, delimiter);
+        msgLine++;
+    }
 }

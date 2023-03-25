@@ -335,7 +335,7 @@ void DG_DrawFrame()
 
   if(DG_NewMessageAvailable)
   {
-    TT_WriteTextToLine(tt_page, 2, DG_HintMessage);
+    TT_WriteHintMessage(tt_page, 2, DG_HintMessage);
     frames_display_message = fps * DISPLAY_SECONDS;
     DG_NewMessageAvailable = false;
   }

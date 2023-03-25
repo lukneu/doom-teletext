@@ -24,7 +24,7 @@ void TT_ShowDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t fpsValue, uint8
 
 void TT_HideDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS]);
 
-void TT_WriteTextToLine(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line, char* string);
+void TT_WriteHintMessage(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line, char* string);
 
 void TT_ClearLine(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line);
 
@@ -60,5 +60,7 @@ void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer,
 
 void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS],
                             uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]);
+
+void TT_InsertQuitMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], char* msg);
 
 #endif
