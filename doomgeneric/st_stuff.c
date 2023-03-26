@@ -58,6 +58,8 @@
 #include "dstrings.h"
 #include "sounds.h"
 
+#include "doomgeneric.h"
+
 //
 // STATUS BAR DATA
 //
@@ -657,6 +659,7 @@ ST_Responder (event_t* ev)
       G_DeferedInitNew(gameskill, epsd, map);
     }
   }
+
   return false;
 }
 
@@ -693,6 +696,8 @@ void ST_updateFaceWidget(void)
     static int	lastattackdown = -1;
     static int	priority = 0;
     boolean	doevilgrin;
+
+    DG_PlayerInRampageMode = false;
 
     if (priority < 10)
     {
@@ -823,6 +828,8 @@ void ST_updateFaceWidget(void)
 		st_faceindex = ST_calcPainOffset() + ST_RAMPAGEOFFSET;
 		st_facecount = 1;
 		lastattackdown = 1;
+
+		DG_PlayerInRampageMode = true;
 	    }
 	}
 	else
@@ -1128,6 +1135,7 @@ static void ST_loadUnloadGraphics(load_callback_t callback)
 
     // face states
     facenum = 0;
+
     for (i=0; i<ST_NUMPAINFACES; i++)
     {
 	for (j=0; j<ST_NUMSTRAIGHTFACES; j++)

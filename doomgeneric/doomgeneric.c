@@ -4,6 +4,8 @@ uint32_t* DG_ScreenBuffer = 0;
 
 player_t* DG_Player = NULL;
 
+boolean DG_PlayerInRampageMode = false;
+
 boolean DG_HintMessageActive = false;
 char DG_HintMessage[39];
 

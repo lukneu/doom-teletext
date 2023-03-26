@@ -168,9 +168,42 @@ void TT_SetActiveAmmunitionToInfinite(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_ST
     InsertIntoStatusbar(statusbar, 0, 1, 2, 6, sprite_text_inf);
 }
 
-void TT_SetHealth(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value)
+void TT_SetHealth(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value, bool rampageMode)
 {
     WriteThreeDigitNumber(statusbar, value, 0, 8);
+
+    uint8_t faceColorByte = rampageMode ? Parity(TTEXT_GRAPHIC_RED) : Parity(TTEXT_GRAPHIC_WHITE);
+    
+    statusbar[0][23] = faceColorByte;
+    statusbar[1][23] = faceColorByte;
+    statusbar[2][23] = faceColorByte;
+
+    //choose fitting status bar face
+    //values from: https://doom.fandom.com/wiki/Status_bar_face
+    if(value >= 80)
+    {
+        InsertIntoStatusbar(statusbar, 0, 24, 3, 4, sprite_player_face_h80);
+    }
+    else if(value >= 60)
+    {
+        InsertIntoStatusbar(statusbar, 0, 24, 3, 4, sprite_player_face_h60);
+    }
+    else if(value >= 40)
+    {
+        InsertIntoStatusbar(statusbar, 0, 24, 3, 4, sprite_player_face_h40);
+    }
+    else if(value >= 20)
+    {
+        InsertIntoStatusbar(statusbar, 0, 24, 3, 4, sprite_player_face_h20);
+    }
+    else if(value >= 1)
+    {
+        InsertIntoStatusbar(statusbar, 0, 24, 3, 4, sprite_player_face_h01);
+    }
+    else
+    {
+        InsertIntoStatusbar(statusbar, 0, 24, 3, 4, sprite_player_face_dead);
+    }
 }
 
 void TT_SetArmor(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value)

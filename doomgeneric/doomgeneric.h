@@ -12,6 +12,8 @@
 extern uint32_t* DG_ScreenBuffer;
 extern player_t* DG_Player;
 
+extern boolean DG_PlayerInRampageMode;
+
 extern boolean DG_HintMessageActive;
 extern char DG_HintMessage[39];
 

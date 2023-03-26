@@ -271,7 +271,7 @@ void DG_DrawFrame()
 
   if (DG_Player != NULL)
   {
-    TT_SetHealth(tt_statusbar, DG_Player->health);
+    TT_SetHealth(tt_statusbar, DG_Player->health, DG_PlayerInRampageMode);
     TT_SetArmor(tt_statusbar, DG_Player->armorpoints);
     TT_SetAvailableWeapons(tt_statusbar, DG_Player->weaponowned[1], DG_Player->weaponowned[2], DG_Player->weaponowned[3], DG_Player->weaponowned[4], DG_Player->weaponowned[5], DG_Player->weaponowned[6]);
       
