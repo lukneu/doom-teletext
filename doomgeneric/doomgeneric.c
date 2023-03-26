@@ -4,8 +4,8 @@ uint32_t* DG_ScreenBuffer = 0;
 
 player_t* DG_Player = NULL;
 
+boolean DG_HintMessageActive = false;
 char DG_HintMessage[39];
-boolean DG_NewMessageAvailable = false;
 
 boolean DG_MenuMessageActive = false;
 char DG_MenuMessageString[160];

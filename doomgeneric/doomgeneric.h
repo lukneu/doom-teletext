@@ -11,8 +11,9 @@
 
 extern uint32_t* DG_ScreenBuffer;
 extern player_t* DG_Player;
+
+extern boolean DG_HintMessageActive;
 extern char DG_HintMessage[39];
-extern boolean DG_NewMessageAvailable;
 
 extern boolean DG_MenuMessageActive;
 extern char DG_MenuMessageString[160];

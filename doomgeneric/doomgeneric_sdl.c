@@ -33,8 +33,6 @@ uint current_frame = 0;
 uint8_t fps = FPS_START;
 uint8_t frames_display_config = 0;
 
-uint8_t frames_display_message = 0;
-
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 SDL_Texture* texture;
@@ -263,19 +261,6 @@ void DG_DrawFrame()
       break;
   }
 
-  switch (frames_display_message)
-  {
-    case 0:
-      break;
-    case 1:
-      TT_ClearLine(tt_page, 2);
-      frames_display_message--;
-      break;
-    default:
-      frames_display_message--;
-      break;
-  }
-
   SDL_UpdateTexture(texture, NULL, DG_ScreenBuffer, DOOMGENERIC_RESX*sizeof(uint32_t));
 
   SDL_RenderClear(renderer);
@@ -333,11 +318,13 @@ void DG_DrawFrame()
         exit(-1);
   }
 
-  if(DG_NewMessageAvailable)
+  if(DG_HintMessageActive)
   {
     TT_WriteHintMessage(tt_page, 2, DG_HintMessage);
-    frames_display_message = fps * DISPLAY_SECONDS;
-    DG_NewMessageAvailable = false;
+  }
+  else
+  {
+    TT_ClearLine(tt_page, 2);
   }
 
   if(DG_MenuMessageActive)
@@ -346,15 +333,6 @@ void DG_DrawFrame()
   }
 
   TT_InsertGameRendering(tt_page, tt_rendering);
-
-  //printf("asd: %s\n", DG_EndString);
-  /*printf("DG_MenuActive: %d\n", DG_MenuActive);
-  printf("DG_MenuItemOn: %d\n", DG_MenuItemOn);
-  printf("DG_MenuItemsCount: %d\n", DG_MenuItemsCount);
-  printf("DG_DoomMenu: %d\n", DG_DoomMenu);
-  printf("DG_MenuMessageString: %s\n", DG_MenuMessageString);
-  printf("\n");*/
-
 
   //send tcp packet
   TCPSocketSendTTPage(tt_page);

@@ -285,6 +285,16 @@ char *mapnames_commercial[] =
     THUSTR_32
 };
 
+//
+// SetMessageOn
+// sets message_on and also DG_HintMessageActive
+//
+void SetMessageOn(boolean value)
+{
+    message_on = value;
+    DG_HintMessageActive = value;
+}
+
 void HU_Init(void)
 {
 
@@ -317,7 +327,7 @@ void HU_Start(void)
 	HU_Stop();
 
     plr = &players[consoleplayer];
-    message_on = false;
+    SetMessageOn(false);
     message_dontfuckwithme = false;
     message_nottobefuckedwith = false;
     chat_on = false;
@@ -410,7 +420,7 @@ void HU_Ticker(void)
     // tick down message counter if message is up
     if (message_counter && !--message_counter)
     {
-	message_on = false;
+    SetMessageOn(false);
 	message_nottobefuckedwith = false;
     }
 
@@ -423,9 +433,8 @@ void HU_Ticker(void)
 	{
 	    HUlib_addMessageToSText(&w_message, 0, plr->message);
 	    strncpy(DG_HintMessage, plr->message, 39);
-	    DG_NewMessageAvailable = true;
 	    plr->message = 0;
-	    message_on = true;
+	    SetMessageOn(true);
 	    message_counter = HU_MSGTIMEOUT;
 	    message_nottobefuckedwith = message_dontfuckwithme;
 	    message_dontfuckwithme = 0;
@@ -459,7 +468,7 @@ void HU_Ticker(void)
 						    w_inputbuffer[i].l.l);
 			    
 			    message_nottobefuckedwith = true;
-			    message_on = true;
+			    SetMessageOn(true);
 			    message_counter = HU_MSGTIMEOUT;
 			    if ( gamemode == commercial )
 			      S_StartSound(0, sfx_radio);
@@ -547,7 +556,7 @@ boolean HU_Responder(event_t *ev)
     {
 	if (ev->data1 == key_message_refresh)
 	{
-	    message_on = true;
+	    SetMessageOn(true);
 	    message_counter = HU_MSGTIMEOUT;
 	    eatkey = true;
 	}
