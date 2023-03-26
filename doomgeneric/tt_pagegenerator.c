@@ -344,7 +344,7 @@ void EncodeString(char* sourceString, uint8_t* targetArray, bool make_uppercase)
     }
 }
 
-void TT_InsertQuitMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], char* msg)
+void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], char* msg)
 {
     char string[strlen(msg)];
     strcpy(string, msg);

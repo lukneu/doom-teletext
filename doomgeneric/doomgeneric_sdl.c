@@ -340,7 +340,21 @@ void DG_DrawFrame()
     DG_NewMessageAvailable = false;
   }
 
+  if(DG_MenuMessageActive)
+  {
+    TT_InsertMenuMessage(tt_rendering, DG_MenuMessageString);
+  }
+
   TT_InsertGameRendering(tt_page, tt_rendering);
+
+  //printf("asd: %s\n", DG_EndString);
+  /*printf("DG_MenuActive: %d\n", DG_MenuActive);
+  printf("DG_MenuItemOn: %d\n", DG_MenuItemOn);
+  printf("DG_MenuItemsCount: %d\n", DG_MenuItemsCount);
+  printf("DG_DoomMenu: %d\n", DG_DoomMenu);
+  printf("DG_MenuMessageString: %s\n", DG_MenuMessageString);
+  printf("\n");*/
+
 
   //send tcp packet
   TCPSocketSendTTPage(tt_page);

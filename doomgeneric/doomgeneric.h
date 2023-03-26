@@ -9,11 +9,19 @@
 #define DOOMGENERIC_RESX 320 //640
 #define DOOMGENERIC_RESY 200 //400
 
-
 extern uint32_t* DG_ScreenBuffer;
 extern player_t* DG_Player;
 extern char DG_HintMessage[39];
 extern boolean DG_NewMessageAvailable;
+
+extern boolean DG_MenuMessageActive;
+extern char DG_MenuMessageString[160];
+
+extern boolean DG_MenuActive;
+extern short DG_MenuItemOn;
+extern short DG_MenuItemsCount;
+extern char DG_DoomMenu;
+
 
 
 void DG_Init();

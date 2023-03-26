@@ -53,6 +53,8 @@
 
 #include "doomstat.h"
 
+#include "doomgeneric.h"
+
 // Data.
 #include "sounds.h"
 
@@ -495,6 +497,35 @@ menu_t  SaveDef =
     0
 };
 
+//
+// SetMenuActive
+// sets menuactive and also DG_MenuActive
+//
+void SetMenuActive(boolean value)
+{
+    menuactive = value;
+    DG_MenuActive = value;
+}
+
+//
+// SetItemOn
+// sets itemOn and also DG_MenuItemOn
+//
+void SetItemOn(short value)
+{
+    itemOn = value;
+    DG_MenuItemOn = value;
+}
+
+//
+// SetMessageToPrint
+// sets messageToPrint and also DG_MenuMessageActive
+//
+void SetMessageToPrint(boolean value)
+{
+    messageToPrint = value;
+    DG_MenuMessageActive = value;
+}
 
 //
 // M_ReadSaveStrings
@@ -1174,8 +1205,6 @@ void M_QuitDOOM(int choice)
 }
 
 
-
-
 void M_ChangeSensitivity(int choice)
 {
     switch(choice)
@@ -1291,19 +1320,21 @@ M_StartMessage
   boolean	input )
 {
     messageLastMenuActive = menuactive;
-    messageToPrint = 1;
     messageString = string;
+    strncpy(DG_MenuMessageString, messageString, 160);
+    SetMessageToPrint(true);
     messageRoutine = routine;
     messageNeedsInput = input;
-    menuactive = true;
+    SetMenuActive(true);
     return;
 }
 
 
 void M_StopMessage(void)
 {
-    menuactive = messageLastMenuActive;
-    messageToPrint = 0;
+    SetMenuActive(messageLastMenuActive);
+    SetMessageToPrint(false);
+    DG_MenuMessageActive = false;
 }
 
 
@@ -1632,12 +1663,14 @@ boolean M_Responder (event_t* ev)
             }
 	}
 
-	menuactive = messageLastMenuActive;
-	messageToPrint = 0;
+    SetMenuActive(messageLastMenuActive);
+	
+	SetMessageToPrint(false);
+
 	if (messageRoutine)
 	    messageRoutine(key);
 
-	menuactive = false;
+	SetMenuActive(false);
 	S_StartSound(NULL,sfx_swtchx);
 	return true;
     }
@@ -1677,7 +1710,7 @@ boolean M_Responder (event_t* ev)
 	    else
 	      currentMenu = &ReadDef1;
 
-	    itemOn = 0;
+        SetItemOn(0);
 	    S_StartSound(NULL,sfx_swtchn);
 	    return true;
 	}
@@ -1699,7 +1732,7 @@ boolean M_Responder (event_t* ev)
         {
 	    M_StartControlPanel ();
 	    currentMenu = &SoundDef;
-	    itemOn = sfx_vol;
+        SetItemOn(sfx_vol);
 	    S_StartSound(NULL,sfx_swtchn);
 	    return true;
 	}
@@ -1771,8 +1804,8 @@ boolean M_Responder (event_t* ev)
         do
 	{
 	    if (itemOn+1 > currentMenu->numitems-1)
-		itemOn = 0;
-	    else itemOn++;
+		SetItemOn(0);
+	    else SetItemOn(itemOn + 1);
 	    S_StartSound(NULL,sfx_pstop);
 	} while(currentMenu->menuitems[itemOn].status==-1);
 
@@ -1785,8 +1818,8 @@ boolean M_Responder (event_t* ev)
 	do
 	{
 	    if (!itemOn)
-		itemOn = currentMenu->numitems-1;
-	    else itemOn--;
+        SetItemOn(currentMenu->numitems-1);
+	    else SetItemOn(itemOn - 1);
 	    S_StartSound(NULL,sfx_pstop);
 	} while(currentMenu->menuitems[itemOn].status==-1);
 
@@ -1854,7 +1887,7 @@ boolean M_Responder (event_t* ev)
 	if (currentMenu->prevMenu)
 	{
 	    currentMenu = currentMenu->prevMenu;
-	    itemOn = currentMenu->lastOn;
+        SetItemOn(currentMenu->lastOn);
 	    S_StartSound(NULL,sfx_swtchn);
 	}
 	return true;
@@ -1870,7 +1903,7 @@ boolean M_Responder (event_t* ev)
         {
 	    if (currentMenu->menuitems[i].alphaKey == ch)
 	    {
-		itemOn = i;
+        SetItemOn(i);
 		S_StartSound(NULL,sfx_pstop);
 		return true;
 	    }
@@ -1880,7 +1913,7 @@ boolean M_Responder (event_t* ev)
         {
 	    if (currentMenu->menuitems[i].alphaKey == ch)
 	    {
-		itemOn = i;
+        SetItemOn(i);
 		S_StartSound(NULL,sfx_pstop);
 		return true;
 	    }
@@ -1901,9 +1934,9 @@ void M_StartControlPanel (void)
     if (menuactive)
 	return;
     
-    menuactive = 1;
+    SetMenuActive(true);
     currentMenu = &MainDef;         // JDC
-    itemOn = currentMenu->lastOn;   // JDC
+    SetItemOn(currentMenu->lastOn); //JDC
 }
 
 // Display OPL debug messages - hack for GENMIDI development.
@@ -2039,7 +2072,7 @@ void M_Drawer (void)
 //
 void M_ClearMenus (void)
 {
-    menuactive = 0;
+    SetMenuActive(false);
     // if (!netgame && usergame && paused)
     //       sendpause = true;
 }
@@ -2053,7 +2086,11 @@ void M_ClearMenus (void)
 void M_SetupNextMenu(menu_t *menudef)
 {
     currentMenu = menudef;
-    itemOn = currentMenu->lastOn;
+    SetItemOn(currentMenu->lastOn);
+
+    DG_MenuItemsCount = currentMenu->numitems;
+
+    //TODO: set DG_DoomMenu
 }
 
 
@@ -2076,12 +2113,12 @@ void M_Ticker (void)
 void M_Init (void)
 {
     currentMenu = &MainDef;
-    menuactive = 0;
-    itemOn = currentMenu->lastOn;
+    SetMenuActive(false);
+    SetItemOn(currentMenu->lastOn);
     whichSkull = 0;
     skullAnimCounter = 10;
     screenSize = screenblocks - 3;
-    messageToPrint = 0;
+    SetMessageToPrint(false);
     messageString = NULL;
     messageLastMenuActive = menuactive;
     quickSaveSlot = -1;
