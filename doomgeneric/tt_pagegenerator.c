@@ -417,35 +417,87 @@ void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_
 }
 
 void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
-                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
+                    struct tt_menu_slider_values sliderValues)
 {
     int currentLine = 0;
+    int startColLastLine = 0;
+
+    int sliderValue = 0;
+    int maxSliderValue = 0;
 
     for (int i = 0; i < itemsCount; i++)
     {
-        int itemLen = strlen(itemsNames[i]);
-
         bool isActive = (i == activeIndex);
         
         //printf("item: %s\n", itemsNames[i]);
+        //printf("status: %d\n", itemsStati[i]);
         //printf("itemLen: %d\n", itemLen);
         //printf("isActive: %d\n", isActive);
 
-        uint8_t stringArray[itemLen];
-        EncodeString(itemsNames[i], stringArray, true);
-
-        uint8_t colorByte = isActive ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_RED);
-
-        int startCol = 20 - itemLen / 2;
-
-        rendering[5 + currentLine][startCol - 1] = colorByte;
-
-        for (int j = 0; j < itemLen; j++)
+        if(itemsStati[i] > 0) //not a slider
         {
-            rendering[5 + currentLine][startCol + j] = stringArray[j];
-        }
+            int itemLen = strlen(itemsNames[i]);
 
-        rendering[5 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
+            //if item has slider in next line, remember values
+            if(strcmp(itemsNames[i], "M_SFXVOL") == 0)
+            {
+                sliderValue = sliderValues.sfxVol;
+                maxSliderValue = 15;
+            }
+            else if(strcmp(itemsNames[i], "M_MUSVOL") == 0)
+            {
+                sliderValue = sliderValues.musicVol;
+                maxSliderValue = 15;
+            }
+            if(strcmp(itemsNames[i], "M_SCRNSZ") == 0)
+            {
+                sliderValue = sliderValues.screenSize;
+                maxSliderValue = 8;
+            }
+            else if(strcmp(itemsNames[i], "M_MSENS") == 0)
+            {
+                sliderValue = sliderValues.mouseSen;
+                maxSliderValue = 9;
+            }
+
+            uint8_t stringArray[itemLen];
+
+            int startCol = 20 - itemLen / 2;
+
+            EncodeString(itemsNames[i], stringArray, true);
+            uint8_t colorByte = isActive ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_RED);
+
+            rendering[5 + currentLine][startCol - 1] = colorByte;
+
+            for (int j = 0; j < itemLen; j++)
+            {
+                rendering[5 + currentLine][startCol + j] = stringArray[j];
+            }
+
+            rendering[5 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
+
+            startColLastLine = startCol;
+        }
+        else //slider
+        {
+            // value range: 0 - maxSliderValue
+            int itemLen = maxSliderValue + 1;
+
+            rendering[5 + currentLine][startColLastLine - 1] = Parity(TTEXT_GRAPHIC_RED);
+            rendering[5 + currentLine][startColLastLine] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
+
+            for (int j = 0; j < itemLen; j++)
+            {
+                rendering[5 + currentLine][startColLastLine + j + 1] =
+                    j == sliderValue ?
+                        Parity(GetTeletextEncodingMosaicByBitMask(0b110011)) :
+                        Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
+            }
+
+            rendering[5 + currentLine][startColLastLine + itemLen + 1] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
+            rendering[5 + currentLine][startColLastLine + itemLen + 2] = Parity(TTEXT_GRAPHIC_WHITE);
+        }
 
         currentLine++;
     }

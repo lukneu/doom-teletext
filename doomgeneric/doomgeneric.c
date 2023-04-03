@@ -19,6 +19,10 @@ short DG_MenuItemsCount = 0;
 char* DG_MenuEntriesNames[10];
 short DG_MenuEntriesStati[10];
 
+int DG_SfxVolume;
+int DG_MusicVolume;
+int DG_MouseSensitivity;
+int DG_ScreenSize;
 
 void dg_Create()
 {

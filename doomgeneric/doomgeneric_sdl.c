@@ -333,6 +333,12 @@ void DG_DrawFrame()
   }
   else if(DG_MenuActive)
   {
+    struct tt_menu_slider_values sliderValues;
+    sliderValues.sfxVol = DG_SfxVolume;
+    sliderValues.musicVol = DG_MusicVolume;
+    sliderValues.screenSize = DG_ScreenSize;
+    sliderValues.mouseSen = DG_MouseSensitivity;
+
     switch (DG_CurrentMenu)
     {
       case DOOM_MENU_READDEF1:
@@ -352,7 +358,7 @@ void DG_DrawFrame()
       case DOOM_MENU_NEWDEF:
       case DOOM_MENU_OPTIONSDEF:
       case DOOM_MENU_SOUNDDEF:
-        TT_OverlayMenu(tt_rendering, DG_MenuItemsCount, DG_MenuEntriesNames, DG_MenuItemOn, DG_MenuEntriesStati);
+        TT_OverlayMenu(tt_rendering, DG_MenuItemsCount, DG_MenuEntriesNames, DG_MenuItemOn, DG_MenuEntriesStati, sliderValues);
         break;
       default:
         break;

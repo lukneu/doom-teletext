@@ -27,6 +27,11 @@ extern short DG_MenuItemsCount;
 extern char* DG_MenuEntriesNames[10];
 extern short DG_MenuEntriesStati[10];
 
+extern int DG_SfxVolume;
+extern int DG_MusicVolume;
+extern int DG_MouseSensitivity;
+extern int DG_ScreenSize;
+
 enum DG_MENUS {
   DOOM_MENU_MAINDEF,
   DOOM_MENU_MAINMENU,
