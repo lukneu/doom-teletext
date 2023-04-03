@@ -333,8 +333,6 @@ void DG_DrawFrame()
   }
   else if(DG_MenuActive)
   {
-printf("DG_CurrentMenu: %d\n", DG_CurrentMenu);
-
     switch (DG_CurrentMenu)
     {
       case DOOM_MENU_READDEF1:
