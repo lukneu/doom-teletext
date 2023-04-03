@@ -420,9 +420,20 @@ void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMN
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
                     struct tt_menu_slider_values sliderValues)
 {
-    int currentLine = 0;
-    int startColLastLine = 0;
+    //determine start column for all menu entries
+    int longestStringLength = 0;
 
+    for (int i = 0; i < itemsCount; i++)
+    {
+        int itemLen = strlen(itemsNames[i]);
+        if(itemLen > longestStringLength)
+        {
+            longestStringLength = itemLen;
+        }
+    }
+    int startCol = 20 - longestStringLength / 2;
+
+    int currentLine = 0;
     int sliderValue = 0;
     int maxSliderValue = 0;
 
@@ -463,8 +474,6 @@ void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMN
 
             uint8_t stringArray[itemLen];
 
-            int startCol = 20 - itemLen / 2;
-
             EncodeString(itemsNames[i], stringArray, true);
             uint8_t colorByte = isActive ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_RED);
 
@@ -476,27 +485,25 @@ void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMN
             }
 
             rendering[5 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
-
-            startColLastLine = startCol;
         }
         else //slider
         {
             // value range: 0 - maxSliderValue
             int itemLen = maxSliderValue + 1;
 
-            rendering[5 + currentLine][startColLastLine - 1] = Parity(TTEXT_GRAPHIC_RED);
-            rendering[5 + currentLine][startColLastLine] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
+            rendering[5 + currentLine][startCol - 1] = Parity(TTEXT_GRAPHIC_RED);
+            rendering[5 + currentLine][startCol] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
 
             for (int j = 0; j < itemLen; j++)
             {
-                rendering[5 + currentLine][startColLastLine + j + 1] =
+                rendering[5 + currentLine][startCol + j + 1] =
                     j == sliderValue ?
                         Parity(GetTeletextEncodingMosaicByBitMask(0b110011)) :
                         Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
             }
 
-            rendering[5 + currentLine][startColLastLine + itemLen + 1] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
-            rendering[5 + currentLine][startColLastLine + itemLen + 2] = Parity(TTEXT_GRAPHIC_WHITE);
+            rendering[5 + currentLine][startCol + itemLen + 1] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
+            rendering[5 + currentLine][startCol + itemLen + 2] = Parity(TTEXT_GRAPHIC_WHITE);
         }
 
         currentLine++;
