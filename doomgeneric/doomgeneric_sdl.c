@@ -331,6 +331,45 @@ void DG_DrawFrame()
   {
     TT_InsertMenuMessage(tt_rendering, DG_MenuMessageString);
   }
+  else if(DG_MenuActive)
+  {
+printf("DG_CurrentMenu: %d\n", DG_CurrentMenu);
+
+    switch (DG_CurrentMenu)
+    {
+      case DOOM_MENU_READDEF1:
+        printf("ReadDef1 Menu\n");
+        break;
+      case DOOM_MENU_READDEF2:
+        printf("ReadDef2 Menu\n");
+        break;
+      case DOOM_MENU_SAVEDDEF:
+        printf("Save Menu\n");
+        break;
+      case DOOM_MENU_LOADDEF:
+        printf("Load Menu\n");
+        break;
+      case DOOM_MENU_MAINDEF:
+      case DOOM_MENU_EPIDEF:
+      case DOOM_MENU_NEWDEF:
+      case DOOM_MENU_OPTIONSDEF:
+      case DOOM_MENU_SOUNDDEF:
+        TT_OverlayMenu(tt_rendering, DG_MenuItemsCount, DG_MenuEntriesNames, DG_MenuItemOn, DG_MenuEntriesStati);
+        break;
+      default:
+        break;
+    }
+    
+    /*
+    printf("active menu: %s\n", "asd");
+    printf(" %d entries\n", DG_MenuItemsCount);
+
+    for(int i = 0; i < DG_MenuItemsCount; i++)
+    {
+      printf(" * %s : %d\t[%d]\n", DG_MenuEntriesNames[i], DG_MenuEntriesStati[i, i == DG_MenuItemOn]);
+    }
+    */
+  }
 
   TT_InsertGameRendering(tt_page, tt_rendering);
 

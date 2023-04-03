@@ -528,6 +528,76 @@ void SetMessageToPrint(boolean value)
 }
 
 //
+// SetCurrentMenu
+// Sets currentMenu and relevant menu information for doomgeneric
+//
+void SetCurrentMenu(menu_t* menu)
+{
+    currentMenu = menu;
+
+    DG_MenuItemsCount = currentMenu->numitems;
+
+    if(currentMenu == &MainDef)
+    {
+        DG_CurrentMenu = DOOM_MENU_MAINDEF;
+    }    
+    else if(currentMenu == &MainMenu)
+    {
+        DG_CurrentMenu = DOOM_MENU_MAINMENU;
+    }
+    else if(currentMenu == &NewDef)
+    {
+        DG_CurrentMenu = DOOM_MENU_NEWDEF;
+    }
+    else if(currentMenu == &NewGameMenu)
+    {
+        DG_CurrentMenu = DOOM_MENU_NEWGAMEMENU;
+    }
+    else if(currentMenu == &EpiDef)
+    {
+        DG_CurrentMenu = DOOM_MENU_EPIDEF;
+    }
+    else if(currentMenu == &EpisodeMenu)
+    {
+        DG_CurrentMenu = DOOM_MENU_EPISODEMENU;
+    }
+    else if(currentMenu == &OptionsDef)
+    {
+        DG_CurrentMenu = DOOM_MENU_OPTIONSDEF;
+    }
+    else if(currentMenu == &OptionsMenu)
+    {
+        DG_CurrentMenu = DOOM_MENU_OPTIONSMENU;
+    }
+    else if(currentMenu == &ReadDef1)
+    {
+        DG_CurrentMenu = DOOM_MENU_READDEF1;
+    }
+    else if(currentMenu == &ReadDef2)
+    {
+        DG_CurrentMenu = DOOM_MENU_READDEF2;
+    }
+    else if(currentMenu == &SoundDef)
+    {
+        DG_CurrentMenu = DOOM_MENU_SOUNDDEF;
+    }
+    else if(currentMenu == &LoadDef)
+    {
+        DG_CurrentMenu = DOOM_MENU_LOADDEF;
+    }
+    else if(currentMenu == &SaveDef)
+    {
+        DG_CurrentMenu = DOOM_MENU_SAVEDDEF;
+    }
+
+    for(int i = 0; i < currentMenu->numitems; i++)
+    {
+        DG_MenuEntriesNames[i] = currentMenu->menuitems[i].name;
+        DG_MenuEntriesStati[i] = currentMenu->menuitems[i].status;
+    }
+}
+
+//
 // M_ReadSaveStrings
 //  read the strings from the savegame files
 //
@@ -1703,12 +1773,12 @@ boolean M_Responder (event_t* ev)
 	}
         else if (key == key_menu_help)     // Help key
         {
-	    M_StartControlPanel ();
+          M_StartControlPanel ();
 
-	    if ( gamemode == retail )
-	      currentMenu = &ReadDef2;
-	    else
-	      currentMenu = &ReadDef1;
+        if ( gamemode == retail )
+            SetCurrentMenu(&ReadDef2);
+        else
+            SetCurrentMenu(&ReadDef1);
 
         SetItemOn(0);
 	    S_StartSound(NULL,sfx_swtchn);
@@ -1731,8 +1801,8 @@ boolean M_Responder (event_t* ev)
         else if (key == key_menu_volume)   // Sound Volume
         {
 	    M_StartControlPanel ();
-	    currentMenu = &SoundDef;
-        SetItemOn(sfx_vol);
+	    SetCurrentMenu(&SoundDef);
+	    SetItemOn(sfx_vol);
 	    S_StartSound(NULL,sfx_swtchn);
 	    return true;
 	}
@@ -1886,8 +1956,8 @@ boolean M_Responder (event_t* ev)
 	currentMenu->lastOn = itemOn;
 	if (currentMenu->prevMenu)
 	{
-	    currentMenu = currentMenu->prevMenu;
-        SetItemOn(currentMenu->lastOn);
+	    SetCurrentMenu(currentMenu->prevMenu);
+	    SetItemOn(currentMenu->lastOn);
 	    S_StartSound(NULL,sfx_swtchn);
 	}
 	return true;
@@ -1935,8 +2005,8 @@ void M_StartControlPanel (void)
 	return;
     
     SetMenuActive(true);
-    currentMenu = &MainDef;         // JDC
-    SetItemOn(currentMenu->lastOn); //JDC
+    SetCurrentMenu(&MainDef);       // JDC
+    SetItemOn(currentMenu->lastOn); // JDC
 }
 
 // Display OPL debug messages - hack for GENMIDI development.
@@ -2077,20 +2147,13 @@ void M_ClearMenus (void)
     //       sendpause = true;
 }
 
-
-
-
 //
 // M_SetupNextMenu
 //
 void M_SetupNextMenu(menu_t *menudef)
 {
-    currentMenu = menudef;
+    SetCurrentMenu(menudef);
     SetItemOn(currentMenu->lastOn);
-
-    DG_MenuItemsCount = currentMenu->numitems;
-
-    //TODO: set DG_DoomMenu
 }
 
 
@@ -2112,7 +2175,7 @@ void M_Ticker (void)
 //
 void M_Init (void)
 {
-    currentMenu = &MainDef;
+    SetCurrentMenu(&MainDef);
     SetMenuActive(false);
     SetItemOn(currentMenu->lastOn);
     whichSkull = 0;

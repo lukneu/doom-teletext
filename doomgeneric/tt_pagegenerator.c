@@ -415,3 +415,39 @@ void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_
         msgLine++;
     }
 }
+
+void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
+{
+    int currentLine = 0;
+
+    for (int i = 0; i < itemsCount; i++)
+    {
+        int itemLen = strlen(itemsNames[i]);
+
+        bool isActive = (i == activeIndex);
+        
+        //printf("item: %s\n", itemsNames[i]);
+        //printf("itemLen: %d\n", itemLen);
+        //printf("isActive: %d\n", isActive);
+
+        uint8_t stringArray[itemLen];
+        EncodeString(itemsNames[i], stringArray, true);
+
+        uint8_t colorByte = isActive ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_RED);
+
+        int startCol = 20 - itemLen / 2;
+
+        rendering[5 + currentLine][startCol - 1] = colorByte;
+
+        for (int j = 0; j < itemLen; j++)
+        {
+            rendering[5 + currentLine][startCol + j] = stringArray[j];
+        }
+
+        rendering[5 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
+
+        currentLine++;
+    }
+    
+}

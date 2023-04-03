@@ -63,4 +63,7 @@ void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS],
 
 void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], char* msg);
 
+void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati);
+
 #endif
