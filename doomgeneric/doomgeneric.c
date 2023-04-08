@@ -19,6 +19,12 @@ short DG_MenuItemsCount = 0;
 char* DG_MenuEntriesNames[10];
 short DG_MenuEntriesStati[10];
 
+int DG_DetailLevel;
+int DG_ShowMessages;
+
+char DG_SavegameStrings[10][24];
+int DG_SaveStringEnter;
+
 int DG_SfxVolume;
 int DG_MusicVolume;
 int DG_MouseSensitivity;

@@ -377,6 +377,145 @@ void EncodeString(char* sourceString, uint8_t* targetArray, bool make_uppercase)
     }
 }
 
+/// @brief Translates string identifiers (used by wad files) to actual strings
+///        WATCH OUT: currently only valid for doom1.wad -> if other WAD files are
+///                   used, this function has to be adapted.
+/// @param sourceString holds identifier string
+/// @param targetArray is used to save actual string
+/// @return length of string stored in targetArray 
+int GetMenuEntryText(char* sourceString, uint8_t* targetArray, int showMessagesValue, int detailLevel)
+{
+    char actualString[38] = {'\0'};
+
+    //DOOM_MENU_MAINDEF entries
+    if (strcmp(sourceString, "M_NGAME") == 0)
+    {
+        strcpy(actualString, "NEW GAME");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_OPTION") == 0)
+    {
+        strcpy(actualString, "OPTIONS");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_LOADG") == 0)
+    {
+        strcpy(actualString, "LOAD GAME");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_SAVEG") == 0)
+    {
+        strcpy(actualString, "SAVE GAME");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_RDTHIS") == 0)
+    {
+        strcpy(actualString, "READ THIS!");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_QUITG") == 0)
+    {
+        strcpy(actualString, "QUIT GAME");
+        EncodeString(actualString, targetArray, false);
+    }
+    //DOOM_MENU_EPIDEF entries
+    else if (strcmp(sourceString, "M_EPI1") == 0)
+    {
+        strcpy(actualString, "KNEE-DEEP IN THE DEAD");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_EPI2") == 0)
+    {
+        strcpy(actualString, "THE SHORES OF HELL");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_EPI3") == 0)
+    {
+        strcpy(actualString, "INFERNO");
+        EncodeString(actualString, targetArray, false);
+    }
+    //DOOM_MENU_NEWDEF entries
+    else if (strcmp(sourceString, "M_JKILL") == 0)
+    {
+        strcpy(actualString, "I'M TOO YOUNG TO DIE.");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_ROUGH") == 0)
+    {
+        strcpy(actualString, "HEY, NOT TOO ROUGH.");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_HURT") == 0)
+    {
+        strcpy(actualString, "HURT ME PLENTY.");
+        EncodeString(actualString, targetArray, false);
+    }
+        else if (strcmp(sourceString, "M_ULTRA") == 0)
+    {
+        strcpy(actualString, "ULTRA-VIOLENCE.");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_NMARE") == 0)
+    {
+        strcpy(actualString, "NIGHTMARE!");
+        EncodeString(actualString, targetArray, false);
+    }
+    //DOOM_MENU_OPTIONSDEF entries
+    else if (strcmp(sourceString, "M_ENDGAM") == 0)
+    {
+        strcpy(actualString, "END GAME");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_MESSG") == 0)
+    {
+        strcpy(actualString, "MESSAGES: ");
+        strcpy(actualString + 10, showMessagesValue ? "ON" : "OFF");
+
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_DETAIL") == 0)
+    {
+        strcpy(actualString, "GRAPHIC DETAIL: ");
+        strcpy(actualString + 16, detailLevel ? "LOW" : "HIGH");
+
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_SCRNSZ") == 0)
+    {
+        strcpy(actualString, "SCREEN SIZE");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_MSENS") == 0)
+    {
+        strcpy(actualString, "MOUSE-SENSITIVITY");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_SVOL") == 0)
+    {
+        strcpy(actualString, "SOUND VOLUME");
+        EncodeString(actualString, targetArray, false);
+    }
+    //DOOM_MENU_SOUNDDEF entries
+    else if (strcmp(sourceString, "M_SFXVOL") == 0)
+    {
+        strcpy(actualString, "SFX VOLUME");
+        EncodeString(actualString, targetArray, false);
+    }
+    else if (strcmp(sourceString, "M_MUSVOL") == 0)
+    {
+        strcpy(actualString, "MUSIC VOLUME");
+        EncodeString(actualString, targetArray, false);
+    }
+    //Unknown entries (should never happen)
+    else
+    {
+        strcpy(actualString, sourceString);
+        EncodeString(actualString, targetArray, false);
+    }
+
+    return strlen(actualString);
+}
+
 void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], char* msg)
 {
     char string[strlen(msg)];
@@ -418,14 +557,19 @@ void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_
 
 void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
-                    struct tt_menu_slider_values sliderValues)
+                    struct tt_menu_slider_values sliderValues, int showMessagesValue, int detailLevel)
 {
     //determine start column for all menu entries
     int longestStringLength = 0;
+    uint8_t actualNamesArray[itemsCount][38];
+    int actualNameLengthsArray[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)
     {
-        int itemLen = strlen(itemsNames[i]);
+        int itemLen = GetMenuEntryText(itemsNames[i], actualNamesArray[i], showMessagesValue, detailLevel);
+
+        actualNameLengthsArray[i] = itemLen;
+
         if(itemLen > longestStringLength)
         {
             longestStringLength = itemLen;
@@ -441,15 +585,8 @@ void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMN
     {
         bool isActive = (i == activeIndex);
         
-        //printf("item: %s\n", itemsNames[i]);
-        //printf("status: %d\n", itemsStati[i]);
-        //printf("itemLen: %d\n", itemLen);
-        //printf("isActive: %d\n", isActive);
-
         if(itemsStati[i] > 0) //not a slider
         {
-            int itemLen = strlen(itemsNames[i]);
-
             //if item has slider in next line, remember values
             if(strcmp(itemsNames[i], "M_SFXVOL") == 0)
             {
@@ -472,26 +609,23 @@ void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMN
                 maxSliderValue = 9;
             }
 
-            uint8_t stringArray[itemLen];
-
-            EncodeString(itemsNames[i], stringArray, true);
             uint8_t colorByte = isActive ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_RED);
 
             rendering[5 + currentLine][startCol - 1] = colorByte;
 
-            for (int j = 0; j < itemLen; j++)
+            for (int j = 0; j < actualNameLengthsArray[i]; j++)
             {
-                rendering[5 + currentLine][startCol + j] = stringArray[j];
+                rendering[5 + currentLine][startCol + j] = actualNamesArray[i][j];
             }
 
-            rendering[5 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
+            rendering[5 + currentLine][startCol + actualNameLengthsArray[i]] = Parity(TTEXT_GRAPHIC_WHITE);
         }
         else //slider
         {
             // value range: 0 - maxSliderValue
             int itemLen = maxSliderValue + 1;
 
-            rendering[5 + currentLine][startCol - 1] = Parity(TTEXT_GRAPHIC_RED);
+            rendering[5 + currentLine][startCol - 1] = Parity(TTEXT_GRAPHIC_BLUE);
             rendering[5 + currentLine][startCol] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
 
             for (int j = 0; j < itemLen; j++)
@@ -508,5 +642,137 @@ void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMN
 
         currentLine++;
     }
+}
+
+void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                        char savegameStrings[10][24], short activeIndex)
+{
+    int itemsCount = 6;
+
+    //determine start column for all entries
+    int longestStringLength = 0;
+
+    for (int i = 0; i < itemsCount; i++)
+    {
+        int itemLen = strlen(savegameStrings[i]);
+        if(itemLen == 0) //empty slot
+        {
+            itemLen = 10; //EMPTY SLOT len
+        }
+
+        if(itemLen > longestStringLength)
+        {
+            longestStringLength = itemLen;
+        }
+    }
+    int startCol = 20 - longestStringLength / 2;
+
+    int currentLine = 0;
+
+    for (int i = 0; i < itemsCount; i++)
+    {
+        bool isEmptySlot = false;
+        int itemLen = strlen(savegameStrings[i]);
+        
+        if(itemLen == 0)
+        {
+            isEmptySlot = true;
+            itemLen = 10; //strlen of "EMPTY SLOT"
+        }
+
+        bool isActive = (i == activeIndex);
+        
+        uint8_t colorByte = isActive ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_RED);
+
+        rendering[5 + currentLine][startCol - 1] = colorByte;
+
+        if (! isEmptySlot)
+        {
+            for (int j = 0; j < itemLen; j++)
+            {
+                rendering[5 + currentLine][startCol + j] = savegameStrings[i][j];
+            }
+        }
+        else
+        {
+            char placeholder[10] = "EMPTY SLOT";
+            
+            for (int j = 0; j < itemLen; j++)
+            {
+                rendering[5 + currentLine][startCol + j] = placeholder[j];
+            }
+        }
+
+        rendering[5 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
+
+        currentLine++;
+    }
+}
+
+void TT_OverlaySaveMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                        char savegameStrings[10][24], short activeIndex, int inEditMode)
+{
+    int itemsCount = 6;
+
+    //determine start column for all entries
+    int longestStringLength = 0;
+
+    for (int i = 0; i < itemsCount; i++)
+    {
+        int itemLen = strlen(savegameStrings[i]);
+        if(itemLen == 0) //empty slot
+        {
+            itemLen = 10; //EMPTY SLOT len
+        }
+
+        if(itemLen > longestStringLength)
+        {
+            longestStringLength = itemLen;
+        }
+    }
+    int startCol = 20 - longestStringLength / 2;
+
+    int currentLine = 0;
+
+    for (int i = 0; i < itemsCount; i++)
+    {
+        bool isEmptySlot = false;
+        int itemLen = strlen(savegameStrings[i]);
+        
+        if(itemLen == 0)
+        {
+            isEmptySlot = true;
+            itemLen = 10; //strlen of "EMPTY SLOT"
+        }
+
+        bool isActive = (i == activeIndex);
+        
+        uint8_t colorByte = isActive ? 
+            inEditMode ? Parity(TTEXT_ALPHA_MAGENTA) : Parity(TTEXT_ALPHA_YELLOW) :
+            Parity(TTEXT_ALPHA_RED);
     
+
+        rendering[5 + currentLine][startCol - 1] = colorByte;
+
+        if (! isEmptySlot)
+        {
+            for (int j = 0; j < itemLen; j++)
+            {
+                rendering[5 + currentLine][startCol + j] = savegameStrings[i][j];
+            }
+        }
+        else
+        {
+            char placeholder[10] = "EMPTY SLOT";
+            
+            for (int j = 0; j < itemLen; j++)
+            {
+                rendering[5 + currentLine][startCol + j] = placeholder[j];
+            }
+        }
+
+        rendering[5 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
+
+        currentLine++;
+    }
 }

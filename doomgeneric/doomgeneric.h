@@ -27,6 +27,12 @@ extern short DG_MenuItemsCount;
 extern char* DG_MenuEntriesNames[10];
 extern short DG_MenuEntriesStati[10];
 
+extern int DG_DetailLevel;
+extern int DG_ShowMessages;
+
+extern char DG_SavegameStrings[10][24];
+extern int DG_SaveStringEnter;
+
 extern int DG_SfxVolume;
 extern int DG_MusicVolume;
 extern int DG_MouseSensitivity;
@@ -34,13 +40,9 @@ extern int DG_ScreenSize;
 
 enum DG_MENUS {
   DOOM_MENU_MAINDEF,
-  DOOM_MENU_MAINMENU,
   DOOM_MENU_NEWDEF,
-  DOOM_MENU_NEWGAMEMENU,
   DOOM_MENU_EPIDEF,
-  DOOM_MENU_EPISODEMENU,
   DOOM_MENU_OPTIONSDEF,
-  DOOM_MENU_OPTIONSMENU,
   DOOM_MENU_READDEF1,
   DOOM_MENU_READDEF2,
   DOOM_MENU_SOUNDDEF,

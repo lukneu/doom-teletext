@@ -348,22 +348,30 @@ void DG_DrawFrame()
         printf("ReadDef2 Menu\n");
         break;
       case DOOM_MENU_SAVEDDEF:
-        printf("Save Menu\n");
+        TT_OverlaySaveMenu(tt_rendering, DG_SavegameStrings, DG_MenuItemOn, DG_SaveStringEnter != 0);
         break;
       case DOOM_MENU_LOADDEF:
-        printf("Load Menu\n");
+        TT_OverlayLoadMenu(tt_rendering, DG_SavegameStrings, DG_MenuItemOn);
         break;
       case DOOM_MENU_MAINDEF:
       case DOOM_MENU_EPIDEF:
       case DOOM_MENU_NEWDEF:
       case DOOM_MENU_OPTIONSDEF:
       case DOOM_MENU_SOUNDDEF:
-        TT_OverlayMenu(tt_rendering, DG_MenuItemsCount, DG_MenuEntriesNames, DG_MenuItemOn, DG_MenuEntriesStati, sliderValues);
+        TT_OverlayMenu(
+          tt_rendering,
+          DG_MenuItemsCount,
+          DG_MenuEntriesNames,
+          DG_MenuItemOn,
+          DG_MenuEntriesStati,
+          sliderValues,
+          DG_ShowMessages,
+          DG_DetailLevel);
         break;
       default:
         break;
     }
-    
+
     /*
     printf("active menu: %s\n", "asd");
     printf(" %d entries\n", DG_MenuItemsCount);

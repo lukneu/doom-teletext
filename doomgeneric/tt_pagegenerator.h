@@ -73,6 +73,12 @@ void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_
 
 void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
-                    struct tt_menu_slider_values sliderValues);
+                    struct tt_menu_slider_values sliderValues, int showMessagesValue, int detailLevel);
+
+void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                        char savegameStrings[10][24], short activeIndex);
+
+void TT_OverlaySaveMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                        char savegameStrings[10][24], short activeIndex, int inEditMode);
 
 #endif

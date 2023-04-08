@@ -518,6 +518,36 @@ void SetItemOn(short value)
 }
 
 //
+// SetDetailLevel
+// sets detailLevel and also DG_DetailLevel
+//
+void SetDetailLevel(int value)
+{
+    detailLevel = value;
+    DG_DetailLevel = value;
+}
+
+//
+// SetShowMessages
+// sets showMessages and also DG_ShowMessages
+//
+void SetShowMessages(int value)
+{
+    showMessages = value;
+    DG_ShowMessages = value;
+}
+
+//
+// SetSaveStringEnter
+// sets saveStringEnter and also DG_SaveStringEnter
+//
+void SetSaveStringEnter(int value)
+{
+    saveStringEnter = value;
+    DG_SaveStringEnter = value;
+}
+
+//
 // SetMessageToPrint
 // sets messageToPrint and also DG_MenuMessageActive
 //
@@ -541,33 +571,17 @@ void SetCurrentMenu(menu_t* menu)
     {
         DG_CurrentMenu = DOOM_MENU_MAINDEF;
     }    
-    else if(currentMenu == &MainMenu)
-    {
-        DG_CurrentMenu = DOOM_MENU_MAINMENU;
-    }
     else if(currentMenu == &NewDef)
     {
         DG_CurrentMenu = DOOM_MENU_NEWDEF;
-    }
-    else if(currentMenu == &NewGameMenu)
-    {
-        DG_CurrentMenu = DOOM_MENU_NEWGAMEMENU;
     }
     else if(currentMenu == &EpiDef)
     {
         DG_CurrentMenu = DOOM_MENU_EPIDEF;
     }
-    else if(currentMenu == &EpisodeMenu)
-    {
-        DG_CurrentMenu = DOOM_MENU_EPISODEMENU;
-    }
     else if(currentMenu == &OptionsDef)
     {
         DG_CurrentMenu = DOOM_MENU_OPTIONSDEF;
-    }
-    else if(currentMenu == &OptionsMenu)
-    {
-        DG_CurrentMenu = DOOM_MENU_OPTIONSMENU;
     }
     else if(currentMenu == &ReadDef1)
     {
@@ -619,8 +633,9 @@ void M_ReadSaveStrings(void)
             continue;
         }
 	fread(&savegamestrings[i], 1, SAVESTRINGSIZE, handle);
+	strcpy(DG_SavegameStrings[i], savegamestrings[i]);
 	fclose(handle);
-	LoadMenu[i].status = 1;
+	LoadMenu[i].status = 1; 
     }
 }
 
@@ -714,6 +729,7 @@ void M_DrawSave(void)
     {
 	i = M_StringWidth(savegamestrings[saveSlot]);
 	M_WriteText(LoadDef.x + i,LoadDef.y+LINEHEIGHT*saveSlot,"_");
+	strcpy(DG_SavegameStrings[saveSlot], savegamestrings[saveSlot]);
     }
 }
 
@@ -736,7 +752,7 @@ void M_DoSave(int slot)
 void M_SaveSelect(int choice)
 {
     // we are going to be intercepting all chars
-    saveStringEnter = 1;
+    SetSaveStringEnter(-1);
     
     saveSlot = choice;
     M_StringCopy(saveOldString,savegamestrings[choice], SAVESTRINGSIZE);
@@ -1123,7 +1139,7 @@ void M_ChangeMessages(int choice)
 {
     // warning: unused parameter `int choice'
     choice = 0;
-    showMessages = 1 - showMessages;
+    SetShowMessages(1 - showMessages);
 	
     if (!showMessages)
 	players[consoleplayer].message = DEH_String(MSGOFF);
@@ -1300,7 +1316,7 @@ void M_ChangeSensitivity(int choice)
 void M_ChangeDetail(int choice)
 {
     choice = 0;
-    detailLevel = 1 - detailLevel;
+    SetDetailLevel(1 - detailLevel);
 
     R_SetViewSize (screenblocks, detailLevel);
 
@@ -1680,13 +1696,14 @@ boolean M_Responder (event_t* ev)
 	    break;
 
           case KEY_ESCAPE:
-            saveStringEnter = 0;
+            SetSaveStringEnter(0);
             M_StringCopy(savegamestrings[saveSlot], saveOldString,
                          SAVESTRINGSIZE);
+            strcpy(DG_SavegameStrings[saveSlot], savegamestrings[saveSlot]);
             break;
 
 	  case KEY_ENTER:
-	    saveStringEnter = 0;
+	    SetSaveStringEnter(0);
 	    if (savegamestrings[saveSlot][0])
 		M_DoSave(saveSlot);
 	    break;
@@ -2182,6 +2199,9 @@ void M_Init (void)
     SetCurrentMenu(&MainDef);
     SetMenuActive(false);
     SetItemOn(currentMenu->lastOn);
+    SetDetailLevel(detailLevel);
+    SetShowMessages(showMessages);
+    SetSaveStringEnter(0);
     whichSkull = 0;
     skullAnimCounter = 10;
     screenSize = screenblocks - 3;
