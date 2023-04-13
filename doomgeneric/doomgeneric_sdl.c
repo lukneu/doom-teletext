@@ -273,9 +273,23 @@ void DG_DrawFrame()
   {
     TT_SetHealth(tt_statusbar, DG_Player->health, DG_PlayerInRampageMode);
     TT_SetArmor(tt_statusbar, DG_Player->armorpoints);
-    TT_SetAvailableWeapons(tt_statusbar, DG_Player->weaponowned[1], DG_Player->weaponowned[2], DG_Player->weaponowned[3], DG_Player->weaponowned[4], DG_Player->weaponowned[5], DG_Player->weaponowned[6]);
+    TT_SetAvailableWeapons(tt_statusbar,
+                           DG_Player->weaponowned[1],
+                           DG_Player->weaponowned[2],
+                           DG_Player->weaponowned[3],
+                           DG_Player->weaponowned[4],
+                           DG_Player->weaponowned[5],
+                           DG_Player->weaponowned[6]);
       
-    TT_SetAmmunitionValues(tt_statusbar, DG_Player->ammo[0], DG_Player->maxammo[0], DG_Player->ammo[1], DG_Player->maxammo[1], DG_Player->ammo[3], DG_Player->maxammo[3], DG_Player->ammo[2], DG_Player->maxammo[2]);
+    TT_SetAmmunitionValues(tt_statusbar,
+                           DG_Player->ammo[0],
+                           DG_Player->maxammo[0],
+                           DG_Player->ammo[1],
+                           DG_Player->maxammo[1],
+                           DG_Player->ammo[3],
+                           DG_Player->maxammo[3],
+                           DG_Player->ammo[2],
+                           DG_Player->maxammo[2]);
 
     TT_SetCards(tt_statusbar, DG_Player->cards[0], DG_Player->cards[1], DG_Player->cards[2]);
     //TODO: what about DG_Player->cards[3 / 4 / 5] ? =>  it_blueskull, it_yellowskull, it_redskull,
@@ -333,12 +347,6 @@ void DG_DrawFrame()
   }
   else if(DG_MenuActive)
   {
-    struct tt_menu_slider_values sliderValues;
-    sliderValues.sfxVol = DG_SfxVolume;
-    sliderValues.musicVol = DG_MusicVolume;
-    sliderValues.screenSize = DG_ScreenSize;
-    sliderValues.mouseSen = DG_MouseSensitivity;
-
     switch (DG_CurrentMenu)
     {
       case DOOM_MENU_READDEF1:
@@ -354,19 +362,21 @@ void DG_DrawFrame()
         TT_OverlayLoadMenu(tt_rendering, DG_SavegameStrings, DG_MenuItemOn);
         break;
       case DOOM_MENU_MAINDEF:
+        TT_OverlayMainMenu(tt_rendering, DG_MenuItemsCount, DG_MenuEntriesNames, DG_MenuItemOn, DG_MenuEntriesStati);
+        break;
       case DOOM_MENU_EPIDEF:
+        TT_OverlayEpisodeMenu(tt_rendering, DG_MenuItemsCount, DG_MenuEntriesNames, DG_MenuItemOn, DG_MenuEntriesStati);
+        break;
       case DOOM_MENU_NEWDEF:
+        TT_OverlayNewGameMenu(tt_rendering, DG_MenuItemsCount, DG_MenuEntriesNames, DG_MenuItemOn, DG_MenuEntriesStati);
+        break;
       case DOOM_MENU_OPTIONSDEF:
+        TT_OverlayOptionsMenu(tt_rendering, DG_MenuItemsCount, DG_MenuEntriesNames, DG_MenuItemOn, DG_MenuEntriesStati,
+                              DG_ScreenSize, DG_MouseSensitivity, DG_ShowMessages, DG_DetailLevel);
+        break;
       case DOOM_MENU_SOUNDDEF:
-        TT_OverlayMenu(
-          tt_rendering,
-          DG_MenuItemsCount,
-          DG_MenuEntriesNames,
-          DG_MenuItemOn,
-          DG_MenuEntriesStati,
-          sliderValues,
-          DG_ShowMessages,
-          DG_DetailLevel);
+        TT_OverlaySoundOptionsMenu(tt_rendering, DG_MenuItemsCount, DG_MenuEntriesNames, DG_MenuItemOn, DG_MenuEntriesStati,
+                                   DG_SfxVolume, DG_MusicVolume);
         break;
       default:
         break;

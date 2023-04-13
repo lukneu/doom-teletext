@@ -14,15 +14,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-struct tt_menu_slider_values
-{
-    int sfxVol;
-    int musicVol;
-    int screenSize;
-    int mouseSen;
-};
-
-
 void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS]);
 
 void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]);
@@ -71,9 +62,22 @@ void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS],
 
 void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], char* msg);
 
-void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+void TT_OverlayMainMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati);
+
+void TT_OverlayEpisodeMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati);
+
+void TT_OverlayNewGameMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati);
+
+void TT_OverlayOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
-                    struct tt_menu_slider_values sliderValues, int showMessagesValue, int detailLevel);
+                    int screensizeValue, int mouseSenValue, int showMessagesValue, int detailLevelValue);
+
+void TT_OverlaySoundOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
+                    int sfxVolValue, int musicVolValue);
 
 void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                         char savegameStrings[10][24], short activeIndex);

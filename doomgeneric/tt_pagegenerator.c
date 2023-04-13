@@ -38,6 +38,19 @@ void InsertIntoStatusbar(uint8_t target[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]
     }
 }
 
+//target array is of size 17*40
+//source array does not have to have correct parity bit, parity bit is set by this function
+void InsertIntoRendering(uint8_t target[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], int startRow, int startColumn, int height, int width, uint8_t source[height][width])
+{
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            target[startRow + i][startColumn + j] = source[i][j];
+        }
+    }
+}
+
 void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
     for (uint8_t i = 0; i < TT_ROWS; i++)
@@ -555,9 +568,9 @@ void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_
     }
 }
 
-void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+void OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], int startLine,
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
-                    struct tt_menu_slider_values sliderValues, int showMessagesValue, int detailLevel)
+                    int sfxVolValue, int musicVolValue, int screensizeValue, int mouseSenValue, int showMessagesValue, int detailLevel)
 {
     //determine start column for all menu entries
     int longestStringLength = 0;
@@ -575,6 +588,7 @@ void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMN
             longestStringLength = itemLen;
         }
     }
+
     int startCol = 20 - longestStringLength / 2;
 
     int currentLine = 0;
@@ -590,63 +604,121 @@ void TT_OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMN
             //if item has slider in next line, remember values
             if(strcmp(itemsNames[i], "M_SFXVOL") == 0)
             {
-                sliderValue = sliderValues.sfxVol;
+                sliderValue = sfxVolValue;
                 maxSliderValue = 15;
             }
             else if(strcmp(itemsNames[i], "M_MUSVOL") == 0)
             {
-                sliderValue = sliderValues.musicVol;
+                sliderValue = musicVolValue;
                 maxSliderValue = 15;
             }
             if(strcmp(itemsNames[i], "M_SCRNSZ") == 0)
             {
-                sliderValue = sliderValues.screenSize;
+                sliderValue = screensizeValue;
                 maxSliderValue = 8;
             }
             else if(strcmp(itemsNames[i], "M_MSENS") == 0)
             {
-                sliderValue = sliderValues.mouseSen;
+                sliderValue = mouseSenValue;
                 maxSliderValue = 9;
             }
 
             uint8_t colorByte = isActive ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_RED);
 
-            rendering[5 + currentLine][startCol - 1] = colorByte;
+            rendering[startLine + currentLine][startCol - 1] = colorByte;
 
             for (int j = 0; j < actualNameLengthsArray[i]; j++)
             {
-                rendering[5 + currentLine][startCol + j] = actualNamesArray[i][j];
+                rendering[startLine + currentLine][startCol + j] = actualNamesArray[i][j];
             }
 
-            rendering[5 + currentLine][startCol + actualNameLengthsArray[i]] = Parity(TTEXT_GRAPHIC_WHITE);
+            rendering[startLine + currentLine][startCol + actualNameLengthsArray[i]] = Parity(TTEXT_GRAPHIC_WHITE);
         }
         else //slider
         {
             // value range: 0 - maxSliderValue
             int itemLen = maxSliderValue + 1;
 
-            rendering[5 + currentLine][startCol - 1] = Parity(TTEXT_GRAPHIC_BLUE);
-            rendering[5 + currentLine][startCol] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
+            rendering[startLine + currentLine][startCol - 1] = Parity(TTEXT_GRAPHIC_BLUE);
+            rendering[startLine + currentLine][startCol] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
 
             for (int j = 0; j < itemLen; j++)
             {
-                rendering[5 + currentLine][startCol + j + 1] =
+                rendering[startLine + currentLine][startCol + j + 1] =
                     j == sliderValue ?
                         Parity(GetTeletextEncodingMosaicByBitMask(0b110011)) :
                         Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
             }
 
-            rendering[5 + currentLine][startCol + itemLen + 1] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
-            rendering[5 + currentLine][startCol + itemLen + 2] = Parity(TTEXT_GRAPHIC_WHITE);
+            rendering[startLine + currentLine][startCol + itemLen + 1] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
+            rendering[startLine + currentLine][startCol + itemLen + 2] = Parity(TTEXT_GRAPHIC_WHITE);
         }
 
         currentLine++;
     }
 }
 
+void OverlayMenuTitle(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], char* title, int line, bool doubleHeight)
+{
+    int strLen = strlen(title);
+    int arrayLen = doubleHeight ? strLen + 4 : strLen + 2;
+    uint8_t titleArray[arrayLen];
+
+    EncodeString(title, titleArray, false);
+
+    int startCol = 20 - arrayLen / 2;
+
+    rendering[line][startCol] = Parity(TTEXT_ALPHA_RED);
+
+    if(doubleHeight)
+    {
+        rendering[line][startCol + 1] = Parity(TTEXT_DOUBLE_HEIGHT);
+        rendering[line][startCol + arrayLen - 2] = Parity(TTEXT_NORMAL_HEIGHT);
+
+        for (int i = 0; i < strLen; i++)
+        {
+            rendering[line][startCol + i + 2] = Parity(titleArray[i]);
+        }
+    }
+    else
+    {
+        for (int i = 0; i < strLen; i++)
+        {
+            rendering[line][startCol + i + 1] = Parity(titleArray[i]);
+        }
+    }
+
+    rendering[line][startCol + arrayLen - 1] = Parity(TTEXT_GRAPHIC_WHITE);
+}
+
+void TT_OverlayMainMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
+{
+    InsertIntoRendering(rendering, 0, 11, 7, 18, sprite_doom_logo);
+
+    OverlayMenu(rendering, 5, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0);
+}
+
+void TT_OverlayEpisodeMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
+{
+    OverlayMenuTitle(rendering, "W H I C H  E P I S O D E?", 1, true);
+    OverlayMenu(rendering, 6, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0);
+}
+
+void TT_OverlayNewGameMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
+{
+    OverlayMenuTitle(rendering, "N E W  G A M E", 0, true);
+    OverlayMenuTitle(rendering, "C H O O S E  S K I L L  L E V E L:", 3, true);
+    OverlayMenu(rendering, 6, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0);
+}
+
 void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                         char savegameStrings[10][24], short activeIndex)
 {
+    OverlayMenuTitle(rendering, "L O A D  G A M E", 1, true);
+
     int itemsCount = 6;
 
     //determine start column for all entries
@@ -684,13 +756,13 @@ void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
         
         uint8_t colorByte = isActive ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_RED);
 
-        rendering[5 + currentLine][startCol - 1] = colorByte;
+        rendering[4 + currentLine][startCol - 1] = colorByte;
 
         if (! isEmptySlot)
         {
             for (int j = 0; j < itemLen; j++)
             {
-                rendering[5 + currentLine][startCol + j] = savegameStrings[i][j];
+                rendering[4 + currentLine][startCol + j] = savegameStrings[i][j];
             }
         }
         else
@@ -699,11 +771,11 @@ void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
             
             for (int j = 0; j < itemLen; j++)
             {
-                rendering[5 + currentLine][startCol + j] = placeholder[j];
+                rendering[4 + currentLine][startCol + j] = placeholder[j];
             }
         }
 
-        rendering[5 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
+        rendering[4 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
 
         currentLine++;
     }
@@ -712,6 +784,8 @@ void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
 void TT_OverlaySaveMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                         char savegameStrings[10][24], short activeIndex, int inEditMode)
 {
+    OverlayMenuTitle(rendering, "S A V E  G A M E", 1, true);
+    
     int itemsCount = 6;
 
     //determine start column for all entries
@@ -752,13 +826,13 @@ void TT_OverlaySaveMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
             Parity(TTEXT_ALPHA_RED);
     
 
-        rendering[5 + currentLine][startCol - 1] = colorByte;
+        rendering[4 + currentLine][startCol - 1] = colorByte;
 
         if (! isEmptySlot)
         {
             for (int j = 0; j < itemLen; j++)
             {
-                rendering[5 + currentLine][startCol + j] = savegameStrings[i][j];
+                rendering[4 + currentLine][startCol + j] = savegameStrings[i][j];
             }
         }
         else
@@ -767,12 +841,30 @@ void TT_OverlaySaveMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
             
             for (int j = 0; j < itemLen; j++)
             {
-                rendering[5 + currentLine][startCol + j] = placeholder[j];
+                rendering[4 + currentLine][startCol + j] = placeholder[j];
             }
         }
 
-        rendering[5 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
+        rendering[4 + currentLine][startCol + itemLen] = Parity(TTEXT_GRAPHIC_WHITE);
 
         currentLine++;
     }
+}
+
+void TT_OverlayOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
+                    int screensizeValue, int mouseSenValue, int showMessagesValue, int detailLevelValue)
+{
+    OverlayMenuTitle(rendering, "O P T I O N S", 0, true);
+    OverlayMenu(rendering, 3, itemsCount, itemsNames, activeIndex, itemsStati,
+                0, 0, screensizeValue, mouseSenValue, showMessagesValue, detailLevelValue);
+}
+
+void TT_OverlaySoundOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
+                    short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
+                    int sfxVolValue, int musicVolValue)
+{
+    OverlayMenuTitle(rendering, "S O U N D  V O L U M E", 2, true);
+    OverlayMenu(rendering, 5, itemsCount, itemsNames, activeIndex, itemsStati,
+                sfxVolValue, musicVolValue, 0, 0, 0, 0);
 }
