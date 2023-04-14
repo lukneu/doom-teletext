@@ -570,10 +570,14 @@ void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_
 
 void OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], int startLine,
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
-                    int sfxVolValue, int musicVolValue, int screensizeValue, int mouseSenValue, int showMessagesValue, int detailLevel)
+                    int sfxVolValue, int musicVolValue, int screensizeValue,
+                    int mouseSenValue, int showMessagesValue, int detailLevel,
+                    int minWidth)
 {
+    //minWidth: set this when menu contains wide sliders, so that menu is centered
+
     //determine start column for all menu entries
-    int longestStringLength = 0;
+    int longestStringLength = minWidth;
     uint8_t actualNamesArray[itemsCount][38];
     int actualNameLengthsArray[itemsCount];
 
@@ -694,16 +698,16 @@ void OverlayMenuTitle(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLU
 void TT_OverlayMainMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
 {
-    InsertIntoRendering(rendering, 0, 11, 7, 18, sprite_doom_logo);
+    InsertIntoRendering(rendering, 0, 10, 6, 18, sprite_doom_logo);
 
-    OverlayMenu(rendering, 5, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0);
+    OverlayMenu(rendering, 5, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0, 0);
 }
 
 void TT_OverlayEpisodeMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
 {
     OverlayMenuTitle(rendering, "W H I C H  E P I S O D E?", 1, true);
-    OverlayMenu(rendering, 6, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0);
+    OverlayMenu(rendering, 6, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0, 0);
 }
 
 void TT_OverlayNewGameMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
@@ -711,7 +715,7 @@ void TT_OverlayNewGameMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER
 {
     OverlayMenuTitle(rendering, "N E W  G A M E", 0, true);
     OverlayMenuTitle(rendering, "C H O O S E  S K I L L  L E V E L:", 3, true);
-    OverlayMenu(rendering, 6, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0);
+    OverlayMenu(rendering, 6, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0, 0);
 }
 
 void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
@@ -857,7 +861,7 @@ void TT_OverlayOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER
 {
     OverlayMenuTitle(rendering, "O P T I O N S", 0, true);
     OverlayMenu(rendering, 3, itemsCount, itemsNames, activeIndex, itemsStati,
-                0, 0, screensizeValue, mouseSenValue, showMessagesValue, detailLevelValue);
+                0, 0, screensizeValue, mouseSenValue, showMessagesValue, detailLevelValue, 11);
 }
 
 void TT_OverlaySoundOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
@@ -866,5 +870,5 @@ void TT_OverlaySoundOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEB
 {
     OverlayMenuTitle(rendering, "S O U N D  V O L U M E", 2, true);
     OverlayMenu(rendering, 5, itemsCount, itemsNames, activeIndex, itemsStati,
-                sfxVolValue, musicVolValue, 0, 0, 0, 0);
+                sfxVolValue, musicVolValue, 0, 0, 0, 0, 18);
 }
