@@ -292,8 +292,8 @@ void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer,
                                  bool separate_graphics)
 {
     //Source image is 320 pixels in width, we can only display
-    // 312 in CONTIGUOUS mode for mosaics, and 308 in SEPARATE mode.
-    uint8_t ignoredPixels = separate_graphics ? 12 : 8;
+    // 312 in CONTIGUOUS mode for mosaics, and 304 in SEPARATE mode.
+    uint8_t ignoredPixels = separate_graphics ? 16 : 8;
 
     for (int tt_row = 0; tt_row < TT_FRAMEBUFFER_ROWS; tt_row++)
     {
@@ -333,7 +333,8 @@ void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer,
                             for (int region_x = 0; region_x < 4; region_x++)
                             {
                                 int src_pixel_value = DG_ScreenBuffer[(12 * tt_row + 4 * cell_y + region_y) * 320 /*DOOMGENERIC_RESX*/ +
-                                                                      (8 * (tt_col - 1) + 4 * cell_x + region_x + ignoredPixels / 2)];
+                                                                      (8 * (tt_col - (separate_graphics ? 2 : 1)) +
+                                                                        4 * cell_x + region_x + ignoredPixels / 2)];
                                 r += (uint8_t)(src_pixel_value >> 16);
                                 g += (uint8_t)(src_pixel_value >> 8);
                                 b += (uint8_t)src_pixel_value;
