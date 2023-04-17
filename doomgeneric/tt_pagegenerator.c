@@ -365,13 +365,13 @@ void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer,
 void TT_InsertStatusbar(uint8_t page[TT_ROWS][TT_COLUMNS],
                         uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS])
 {
-    InsertIntoPage(page, 20, 0, TT_STATUSBAR_ROWS, TT_STATUSBAR_COLUMNS, statusbar);
+    InsertIntoPage(page, 21, 0, TT_STATUSBAR_ROWS, TT_STATUSBAR_COLUMNS, statusbar);
 }
 
 void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS],
                             uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS])
 {
-    InsertIntoPage(page, 3, 0, TT_FRAMEBUFFER_ROWS, TT_FRAMEBUFFER_COLUMNS, rendering);
+    InsertIntoPage(page, 4, 0, TT_FRAMEBUFFER_ROWS, TT_FRAMEBUFFER_COLUMNS, rendering);
 }
 
 void EncodeString(char* sourceString, uint8_t* targetArray, bool make_uppercase)
@@ -699,7 +699,7 @@ void OverlayMenuTitle(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLU
 void TT_OverlayMainMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
 {
-    InsertIntoRendering(rendering, 0, 10, 6, 18, sprite_doom_logo);
+    InsertIntoRendering(rendering, 0, 11, 6, 18, sprite_doom_logo);
 
     OverlayMenu(rendering, 5, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0, 0);
 }
@@ -872,4 +872,14 @@ void TT_OverlaySoundOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEB
     OverlayMenuTitle(rendering, "S O U N D  V O L U M E", 2, true);
     OverlayMenu(rendering, 5, itemsCount, itemsNames, activeIndex, itemsStati,
                 sfxVolValue, musicVolValue, 0, 0, 0, 0, 18);
+}
+
+void TT_OverlayReadThis1(uint8_t page[TT_ROWS][TT_COLUMNS])
+{
+    InsertIntoPage(page, 1, 0, 24, 40, sprite_readme_1);
+}
+
+void TT_OverlayReadThis2(uint8_t page[TT_ROWS][TT_COLUMNS])
+{
+    InsertIntoPage(page, 1, 0, 24, 40, sprite_readme_2);
 }

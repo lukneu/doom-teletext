@@ -1,7 +1,7 @@
 #ifndef TT_PAGEGENERATOR_H
 #define TT_PAGEGENERATOR_H
 
-#define TT_ROWS 24
+#define TT_ROWS 25
 #define TT_COLUMNS 42
 
 #define TT_FRAMEBUFFER_ROWS 17 //rows needed to display actual game frame
@@ -18,7 +18,7 @@ void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS]);
 
 void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]);
 
-//debug info
+//write/hide info
 void TT_ShowDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t fpsValue, uint8_t graphicMode);
 
 void TT_HideDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS]);
@@ -84,5 +84,7 @@ void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
 
 void TT_OverlaySaveMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                         char savegameStrings[10][24], short activeIndex, int inEditMode);
+
+void TT_OverlayReadThis2(uint8_t page[TT_ROWS][TT_COLUMNS]);
 
 #endif

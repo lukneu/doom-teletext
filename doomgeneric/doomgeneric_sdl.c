@@ -178,7 +178,6 @@ static void handleKeyInput(){
       }
 
       frames_display_config = fps * DISPLAY_SECONDS;
-      TT_ShowDebugInfo(tt_page, fps, graphicMode);
       return;
     }
 
@@ -246,17 +245,23 @@ void DG_Init(){
 
 void DG_DrawFrame()
 {
+  bool page_finished = false;
   current_frame++;
+
+  //clear lines that are not edited in any frame
+  TT_ClearLine(tt_page, 1);
+  TT_ClearLine(tt_page, 2);
+  TT_ClearLine(tt_page, 3);
   
   switch (frames_display_config)
   {
     case 0:
       break;
     case 1:
-      TT_HideDebugInfo(tt_page);
       frames_display_config--;
       break;
     default:
+      TT_ShowDebugInfo(tt_page, fps, graphicMode);
       frames_display_config--;
       break;
   }
@@ -334,11 +339,7 @@ void DG_DrawFrame()
 
   if(DG_HintMessageActive)
   {
-    TT_WriteHintMessage(tt_page, 2, DG_HintMessage);
-  }
-  else
-  {
-    TT_ClearLine(tt_page, 2);
+    TT_WriteHintMessage(tt_page, 3, DG_HintMessage);
   }
 
   if(DG_MenuMessageActive)
@@ -350,10 +351,12 @@ void DG_DrawFrame()
     switch (DG_CurrentMenu)
     {
       case DOOM_MENU_READDEF1:
-        printf("ReadDef1 Menu\n");
+        TT_OverlayReadThis1(tt_page);
+        page_finished = true;
         break;
       case DOOM_MENU_READDEF2:
-        printf("ReadDef2 Menu\n");
+        TT_OverlayReadThis2(tt_page);
+        page_finished = true;
         break;
       case DOOM_MENU_SAVEDDEF:
         TT_OverlaySaveMenu(tt_rendering, DG_SavegameStrings, DG_MenuItemOn, DG_SaveStringEnter != 0);
@@ -393,7 +396,10 @@ void DG_DrawFrame()
     */
   }
 
-  TT_InsertGameRendering(tt_page, tt_rendering);
+  if(!page_finished)
+  {
+    TT_InsertGameRendering(tt_page, tt_rendering);
+  }
 
   //send tcp packet
   TCPSocketSendTTPage(tt_page);
