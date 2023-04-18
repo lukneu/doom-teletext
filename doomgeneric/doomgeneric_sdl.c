@@ -147,38 +147,37 @@ static void handleKeyInput(){
       exit(1);
     }
 
-    if (e.type == SDL_KEYDOWN &&
-                  ( e.key.keysym.sym == SDLK_g ||
-                    e.key.keysym.sym == SDLK_o ||
-                    e.key.keysym.sym == SDLK_l ))
+    //check for teletext function keys (FPS+, FPS-, change graphic mode)
+    if (e.type == SDL_TEXTINPUT)
     {
-      switch (e.key.keysym.sym)
+      if (strcmp(e.text.text, "<") == 0)
       {
-        case SDLK_g:
-          graphicMode++;
-          if (graphicMode == NumberOfGraphicModes)
-          {
-            graphicMode = 0;
-          }
-          break;
-        case SDLK_o:
-          if(fps < FPS_MAX)
-          {
-            fps++;
-          }
-          break;
-        case SDLK_l:
-          if(fps > FPS_MIN)
-          { 
-            fps--;
-          }
-          break;
-        default:
-          break;
-      }
+        if(fps > FPS_MIN)
+        { 
+          fps--;
+        }
 
-      frames_display_config = fps * DISPLAY_SECONDS;
-      return;
+        frames_display_config = fps * DISPLAY_SECONDS;
+      }
+      else if (strcmp(e.text.text, ">") == 0)
+      {
+        if(fps < FPS_MAX)
+        {
+          fps++;
+        }
+
+        frames_display_config = fps * DISPLAY_SECONDS;
+      }
+      else if (strcmp(e.text.text, "?") == 0)
+      {
+        graphicMode++;
+        if (graphicMode == NumberOfGraphicModes)
+        {
+          graphicMode = 0;
+        }
+
+        frames_display_config = fps * DISPLAY_SECONDS;
+      }
     }
 
     if (e.type == SDL_KEYDOWN) {

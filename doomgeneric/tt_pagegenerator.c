@@ -876,7 +876,7 @@ void TT_OverlaySoundOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEB
 
 void TT_OverlayReadThis1(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
-    InsertIntoPage(page, 1, 0, 24, 40, sprite_readme_1);
+    InsertIntoPage(page, 2, 0, 23, 40, sprite_readme_1);
 }
 
 void TT_OverlayReadThis2(uint8_t page[TT_ROWS][TT_COLUMNS])
