@@ -195,3 +195,7 @@ void DG_SetWindowTitle(const char * title)
 		SetWindowTextA(s_Hwnd, title);
 	}
 }
+
+void DG_Close()
+{
+}

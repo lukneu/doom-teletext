@@ -140,6 +140,8 @@ static void handleKeyInput(){
     if (e.type == SDL_QUIT){
       puts("Quit requested");
 
+      DG_Close();
+
       //close TCP socket
       TCPSocketClose();
 
@@ -440,4 +442,11 @@ void DG_SetWindowTitle(const char * title)
   if (window != NULL){
     SDL_SetWindowTitle(window, title);
   }
+}
+
+void DG_Close()
+{
+  //send final tcp packet
+  TT_OverlayQuitScreen(tt_page);
+  TCPSocketSendTTPage(tt_page);
 }

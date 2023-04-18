@@ -51,6 +51,8 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
+#include "doomgeneric.h"
+
 #ifdef __MACOSX__
 #include <CoreFoundation/CFUserNotification.h>
 #endif
@@ -245,6 +247,8 @@ void I_BindVariables(void)
 
 void I_Quit (void)
 {
+    DG_Close();
+
     atexit_listentry_t *entry;
 
     // Run through all exit functions

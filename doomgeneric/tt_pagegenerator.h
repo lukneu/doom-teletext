@@ -87,4 +87,6 @@ void TT_OverlaySaveMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
 
 void TT_OverlayReadThis2(uint8_t page[TT_ROWS][TT_COLUMNS]);
 
+void TT_OverlayQuitScreen(uint8_t page[TT_ROWS][TT_COLUMNS]);
+
 #endif

@@ -257,3 +257,7 @@ void DG_SetWindowTitle(const char * title)
 {
     GrSetWindowTitle(wid, title);
 }
+
+void DG_Close()
+{
+}

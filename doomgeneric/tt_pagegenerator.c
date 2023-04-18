@@ -883,3 +883,8 @@ void TT_OverlayReadThis2(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
     InsertIntoPage(page, 1, 0, 24, 40, sprite_readme_2);
 }
+
+void TT_OverlayQuitScreen(uint8_t page[TT_ROWS][TT_COLUMNS])
+{
+    InsertIntoPage(page, 1, 0, 24, 40, sprite_end);
+}
