@@ -237,6 +237,23 @@ void DG_Init(){
   {
     printf("Argument '-tt_stream_port' was not provided. Using %d\n", tcp_server_port);
   }
+
+  int tt_fps_param = M_CheckParmWithArgs("-tt_target_fps", 1);
+  if (tt_fps_param > 0)
+  {
+    int fps_value = atoi(myargv[tt_fps_param + 1]);
+
+    if(fps_value >= FPS_MIN && fps_value <= FPS_MAX)
+    {
+      fps = fps_value;
+    }
+
+    printf("Sending %d teletext pages per second. Try using a lower value if it lags on your TV.\n", fps);
+  }
+  else
+  {
+    printf("Argument '-tt_target_fps' was not provided. Using %d\n", fps);
+  }
   
   //create tcp client
   TCPSocketCreate(tcp_server_ip, tcp_server_port);
