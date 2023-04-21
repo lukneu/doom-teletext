@@ -1,4 +1,6 @@
-//doomgeneric for cross-platform development library 'Simple DirectMedia Layer'
+//doomgeneric for cross-platform development library 'Simple DirectMedia Layer',
+//that also sends level 1 teletext page packets via tcp, so that doom can be rendered in teletext.
+//sdl window is needed for key input and for sound output
 
 #include "doomkeys.h"
 #include "m_argv.h"
