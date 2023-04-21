@@ -200,8 +200,8 @@ void DG_Init(){
   window = SDL_CreateWindow("DOOM",
                             SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED,
-                            DOOMGENERIC_RESX,
-                            DOOMGENERIC_RESY,
+                            2 * DOOMGENERIC_RESX,
+                            2 * DOOMGENERIC_RESY,
                             SDL_WINDOW_SHOWN
                             );
 
