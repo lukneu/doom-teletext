@@ -1,6 +1,7 @@
 #include "tt_charset.h"
 #include "tt_encoding.h"
 
+//returns a  byte that describes a teletext cell with 0 to 6 pixels set
 uint8_t GetTeletextEncodingMosaic(bool pixelTopLeft,
                                   bool pixelTopRight,
                                   bool pixelCenterLeft,
@@ -33,6 +34,14 @@ uint8_t GetTeletextEncodingMosaic(bool pixelTopLeft,
     return Parity(value);
 }
 
+//returns a  byte that describes a teletext cell with 0 to 6 pixels set
+//usage: GetTeletextEncodingMosaicByBitMask(0b100010)
+//       for a cell with top left and bottom left pixel set.
+//       -------
+//       ||||  |
+//       |     |
+//       ||||  |
+//       -------
 uint8_t GetTeletextEncodingMosaicByBitMask(uint8_t mosaicMask)
 {  
     return GetTeletextEncodingMosaic(

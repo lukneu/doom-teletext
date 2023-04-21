@@ -87,6 +87,8 @@ void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
 void TT_OverlaySaveMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                         char savegameStrings[10][24], short activeIndex, int inEditMode);
 
+void TT_OverlayReadThis1(uint8_t page[TT_ROWS][TT_COLUMNS]);
+
 void TT_OverlayReadThis2(uint8_t page[TT_ROWS][TT_COLUMNS]);
 
 void TT_OverlayQuitScreen(uint8_t page[TT_ROWS][TT_COLUMNS]);

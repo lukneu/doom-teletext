@@ -53,6 +53,7 @@ void InsertIntoRendering(uint8_t target[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLU
     }
 }
 
+//fills given array with a teletext header of page FF.
 void TT_GetTimeFillingHeaderPacket(uint8_t header[TT_COLUMNS])
 {
     //https://www.etsi.org/deliver/etsi_i_ets/300700_300799/300706/01_60/ets_300706e01p.pdf
@@ -90,6 +91,8 @@ void TT_GetTimeFillingHeaderPacket(uint8_t header[TT_COLUMNS])
     }
 }
 
+//fills given page with a valid header and valid mpag bytes,
+//so that page can be filled with displayable data afterwards
 void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
     //TT page specification:
@@ -150,6 +153,7 @@ void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
     }
 }
 
+//fills given array with doom statusbar template
 void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS])
 {
     for (uint8_t i = 0; i < TT_STATUSBAR_ROWS; i++)
@@ -161,6 +165,7 @@ void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]
     }
 }
 
+//writes a given string in red letters on given line of page
 void TT_WriteHintMessage(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line, char* string)
 {
     TT_ClearLine(page, line); //Just in case the old message was longer than the current one
@@ -182,6 +187,7 @@ void TT_WriteHintMessage(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line, char* 
     }
 }
 
+//overwrites a given line of page with spaces
 void TT_ClearLine(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line)
 {
     for(int i = 0; i < 40; i++)
@@ -190,6 +196,10 @@ void TT_ClearLine(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t line)
     }
 }
 
+//writes a number with up to three digits to a given position of the statusbar
+//used for values of ammunition, health and armor
+//digits are displayed big and red, similar to the look in original doom
+//digits for tens and hundreds are only displayed if needed (like it is handled in original doom)
 void WriteThreeDigitNumber(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
                            int value,
                            uint8_t start_row,
@@ -204,7 +214,8 @@ void WriteThreeDigitNumber(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COL
     InsertIntoStatusbar(statusbar, start_row, start_col + 4, 2, 2, sprite_char_array[digit_3]);
 }
 
-void TT_ShowDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t fpsValue, uint8_t graphicMode)
+//inserts information about target FPS and currently used graphics mode into teletext page
+void TT_ShowDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t fpsValue, uint8_t graphicsMode)
 {
     uint8_t char_1 = fpsValue > 9 ? '0' + (fpsValue / 10) : 0x20; 
     uint8_t char_2 = '0' + (fpsValue % 10);
@@ -212,10 +223,11 @@ void TT_ShowDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t fpsValue, uint8
     uint8_t fpsBytes[1][7] = { { TTEXT_ALPHA_YELLOW, char_1, char_2, ' ', 'F', 'P', 'S' } };
     InsertIntoPage(page, 1, 33, 1, 7, fpsBytes);
 
-    uint8_t grapicModeBytes[1][16] = { { TTEXT_ALPHA_YELLOW, 'G', 'r', 'a', 'p', 'h', 'i', 'c', ' ', 'm', 'o', 'd', 'e', ':', ' ', '0' + graphicMode} };
-    InsertIntoPage(page, 1, 0, 1, 16, grapicModeBytes);
+    uint8_t grapicsModeBytes[1][17] = { { TTEXT_ALPHA_YELLOW, 'G', 'r', 'a', 'p', 'h', 'i', 'c', 's', ' ', 'm', 'o', 'd', 'e', ':', ' ', '0' + graphicsMode} };
+    InsertIntoPage(page, 1, 0, 1, 17, grapicsModeBytes);
 }
 
+//overwrites debug information on teletext page with spaces
 void TT_HideDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
     for (int i = 0; i < 40; i++)
@@ -224,16 +236,21 @@ void TT_HideDebugInfo(uint8_t page[TT_ROWS][TT_COLUMNS])
     }
 }
 
+//writes the ammunition value into statusbar
 void TT_SetActiveAmmunition(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value)
 {
     WriteThreeDigitNumber(statusbar, value, 0, 1);
 }
 
+//writes 'INF.' as ammunition value into statusbar
 void TT_SetActiveAmmunitionToInfinite(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS])
 {
     InsertIntoStatusbar(statusbar, 0, 1, 2, 6, sprite_text_inf);
 }
 
+//writes the health value and corresponding player face into statusbar
+//like in original doom, player face in statusbar depends on the health value
+//if the player is in rampage mode, the face is displayed red
 void TT_SetHealth(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value, bool rampageMode)
 {
     WriteThreeDigitNumber(statusbar, value, 0, 8);
@@ -272,11 +289,13 @@ void TT_SetHealth(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], in
     }
 }
 
+//writes the armor value into statusbar
 void TT_SetArmor(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS], int value)
 {
     WriteThreeDigitNumber(statusbar, value, 0, 30);
 }
 
+//displays available weapons in yellow and not available ones in white
 void TT_SetAvailableWeapons(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
                             bool w2, bool w3, bool w4, bool w5, bool w6, bool w7)
 {
@@ -289,6 +308,8 @@ void TT_SetAvailableWeapons(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_CO
     statusbar[1][20] = w7 ? Parity(TTEXT_ALPHA_YELLOW) : Parity(TTEXT_ALPHA_WHITE);
 }
 
+//displays available cards (blue/yellow/red) in statusbar.
+//not available ones are displayed in white
 void TT_SetCards(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
                  bool bluecard, bool yellowcard, bool redcard)
 {
@@ -297,6 +318,7 @@ void TT_SetCards(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
     statusbar[2][38] = redcard ? Parity(TTEXT_GRAPHIC_RED) : Parity(TTEXT_GRAPHIC_WHITE);
 }
 
+//writes the ammunition values of the four ammunition categories into last line of statusbar
 void TT_SetAmmunitionValues(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS],
                             int bull_avail, int bull_max,
                             int shel_avail, int shel_max,
@@ -340,6 +362,10 @@ void TT_SetAmmunitionValues(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_CO
     statusbar[3][39] = Parity('0' + (cell_max % 10));
 }
 
+/// @brief fills given 2d-array with black/white teletext graphic of current game rendering
+/// @param DG_ScreenBuffer original rgb screen buffer
+/// @param rendering array to fill with teletext graphic mode content
+/// @param separate_graphics true for usage of TTEXT_SEPARATED_GRAPHICS, false for TTEXT_GRAPHIC_WHITE
 void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer,
                                  uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                                  bool separate_graphics)
@@ -415,18 +441,21 @@ void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer,
     }
 }
 
+//inserts statusbar into whole teletext page
 void TT_InsertStatusbar(uint8_t page[TT_ROWS][TT_COLUMNS],
                         uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS])
 {
     InsertIntoPage(page, 20, 0, TT_STATUSBAR_ROWS, TT_STATUSBAR_COLUMNS, statusbar);
 }
 
+//inserts rendering area into whole teletext page
 void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS],
                             uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS])
 {
     InsertIntoPage(page, 3, 0, TT_FRAMEBUFFER_ROWS, TT_FRAMEBUFFER_COLUMNS, rendering);
 }
 
+//fills a given array with teletext encoding of a given string
 void EncodeString(char* sourceString, uint8_t* targetArray, bool make_uppercase)
 {
     size_t strLen = strlen(sourceString);
@@ -583,6 +612,8 @@ int GetMenuEntryText(char* sourceString, uint8_t* targetArray, int showMessagesV
     return strlen(actualString);
 }
 
+//inserts a given message in read letters into the rendering area
+//if the message has multiple lines, it is shown on multiple lines in rendering area as well
 void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], char* msg)
 {
     char string[strlen(msg)];
@@ -622,14 +653,27 @@ void TT_InsertMenuMessage(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_
     }
 }
 
+/// @brief inserts game menu with given parameters into rendering area
+///        currently selected entries are displayed in yellow, unselected in red
+/// @param rendering 2d array with rendering content
+/// @param startLine line of rendering, which should hold first menu entry
+/// @param itemsCount number of menu entries
+/// @param itemsNames array of identifiers of menu entries
+/// @param activeIndex tells which menu item is currently selected
+/// @param itemsStati holds information about menu items - needed to determine if entry has slider in menu
+/// @param sfxVolValue current value of sfxVolume (only needed if displayed in current menu)
+/// @param musicVolValue current value of musicVolume (only needed if displayed in current menu)
+/// @param screensizeValue current value of screen size (only needed if displayed in current menu)
+/// @param mouseSenValue current value of mouse sensitivity (only needed if displayed in current menu)
+/// @param showMessagesValue current bool value of showMessages (only needed if displayed in current menu)
+/// @param detailLevel current value of detailLevel (only needed if displayed in current menu)
+/// @param minWidth set this when menu contains wide sliders, so that menu is centered
 void OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], int startLine,
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
                     int sfxVolValue, int musicVolValue, int screensizeValue,
                     int mouseSenValue, int showMessagesValue, int detailLevel,
                     int minWidth)
 {
-    //minWidth: set this when menu contains wide sliders, so that menu is centered
-
     //determine start column for all menu entries
     int longestStringLength = minWidth;
     uint8_t actualNamesArray[itemsCount][38];
@@ -698,17 +742,17 @@ void OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
             int itemLen = maxSliderValue + 1;
 
             rendering[startLine + currentLine][startCol - 1] = Parity(TTEXT_GRAPHIC_BLUE);
-            rendering[startLine + currentLine][startCol] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
+            rendering[startLine + currentLine][startCol] = GetTeletextEncodingMosaicByBitMask(0b111111);
 
             for (int j = 0; j < itemLen; j++)
             {
                 rendering[startLine + currentLine][startCol + j + 1] =
                     j == sliderValue ?
-                        Parity(GetTeletextEncodingMosaicByBitMask(0b110011)) :
-                        Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
+                        GetTeletextEncodingMosaicByBitMask(0b110011) :
+                        GetTeletextEncodingMosaicByBitMask(0b111111);
             }
 
-            rendering[startLine + currentLine][startCol + itemLen + 1] = Parity(GetTeletextEncodingMosaicByBitMask(0b111111));
+            rendering[startLine + currentLine][startCol + itemLen + 1] = GetTeletextEncodingMosaicByBitMask(0b111111);
             rendering[startLine + currentLine][startCol + itemLen + 2] = Parity(TTEXT_GRAPHIC_WHITE);
         }
 
@@ -716,6 +760,11 @@ void OverlayMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
     }
 }
 
+/// @brief inserts game menu title (optionally with double line height) into rendering area
+/// @param rendering 2d array with rendering content
+/// @param title string to print as title
+/// @param line which line to print to
+/// @param doubleHeight true if title should be printed over two teletext lines, false for default text height
 void OverlayMenuTitle(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS], char* title, int line, bool doubleHeight)
 {
     int strLen = strlen(title);
@@ -749,6 +798,7 @@ void OverlayMenuTitle(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLU
     rendering[line][startCol + arrayLen - 1] = Parity(TTEXT_GRAPHIC_WHITE);
 }
 
+//puts the main menu into rendering area
 void TT_OverlayMainMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
 {
@@ -757,6 +807,7 @@ void TT_OverlayMainMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
     OverlayMenu(rendering, 5, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0, 0);
 }
 
+//puts the episode choosing menu into rendering area
 void TT_OverlayEpisodeMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
 {
@@ -764,6 +815,7 @@ void TT_OverlayEpisodeMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER
     OverlayMenu(rendering, 6, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0, 0);
 }
 
+//puts the new game menu into rendering area
 void TT_OverlayNewGameMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati)
 {
@@ -772,6 +824,7 @@ void TT_OverlayNewGameMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER
     OverlayMenu(rendering, 6, itemsCount, itemsNames, activeIndex, itemsStati, 0, 0, 0, 0, 0, 0, 0);
 }
 
+//puts the load menu into rendering area
 void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                         char savegameStrings[10][24], short activeIndex)
 {
@@ -839,6 +892,7 @@ void TT_OverlayLoadMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
     }
 }
 
+//puts the save menu into rendering area
 void TT_OverlaySaveMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                         char savegameStrings[10][24], short activeIndex, int inEditMode)
 {
@@ -909,6 +963,7 @@ void TT_OverlaySaveMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_CO
     }
 }
 
+//puts the options menu into rendering area
 void TT_OverlayOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
                     int screensizeValue, int mouseSenValue, int showMessagesValue, int detailLevelValue)
@@ -918,6 +973,7 @@ void TT_OverlayOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER
                 0, 0, screensizeValue, mouseSenValue, showMessagesValue, detailLevelValue, 11);
 }
 
+//puts the sound options menu into rendering area
 void TT_OverlaySoundOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS],
                     short itemsCount, char** itemsNames, short activeIndex, short* itemsStati,
                     int sfxVolValue, int musicVolValue)
@@ -927,16 +983,19 @@ void TT_OverlaySoundOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEB
                 sfxVolValue, musicVolValue, 0, 0, 0, 0, 18);
 }
 
+//fills rendering area with a remake of the first 'read this!' page
 void TT_OverlayReadThis1(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
     InsertIntoPage(page, 1, 0, 23, 40, sprite_readme_1);
 }
 
+//fills rendering area with a remake of the second 'read this!' page
 void TT_OverlayReadThis2(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
     InsertIntoPage(page, 1, 0, 23, 40, sprite_readme_2);
 }
 
+//fills rendering area with a quit screen that tells used to exit teletext
 void TT_OverlayQuitScreen(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
     InsertIntoPage(page, 1, 0, 23, 40, sprite_end);

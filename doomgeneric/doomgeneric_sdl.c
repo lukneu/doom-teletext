@@ -144,9 +144,6 @@ static void handleKeyInput(){
 
       DG_Close();
 
-      //close TCP socket
-      TCPSocketClose();
-
       atexit(SDL_Quit);
       exit(1);
     }
@@ -218,6 +215,7 @@ void DG_Init(){
   char* tcp_server_ip = "127.0.0.1";
   int tcp_server_port = 8080;
 
+  //check if user provided target ip
   int tt_ip_param = M_CheckParmWithArgs("-tt_stream_ip", 1);
   if (tt_ip_param > 0)
   {
@@ -228,6 +226,7 @@ void DG_Init(){
     printf("Argument '-tt_stream_ip' was not provided. Using %s\n", tcp_server_ip);
   }
 
+  //check if user provided target port
   int tt_port_param = M_CheckParmWithArgs("-tt_stream_port", 1);
   if (tt_port_param > 0)
   {
@@ -238,6 +237,7 @@ void DG_Init(){
     printf("Argument '-tt_stream_port' was not provided. Using %d\n", tcp_server_port);
   }
 
+  //check if user provided target FPS value
   int tt_fps_param = M_CheckParmWithArgs("-tt_target_fps", 1);
   if (tt_fps_param > 0)
   {
@@ -262,7 +262,7 @@ void DG_Init(){
   TT_InitPage(tt_page);
   TT_InitStatusbar(tt_statusbar);
 
-  //time filling header
+  //get time filling header for later use
   TT_GetTimeFillingHeaderPacket(tt_time_filling_header);
 }
 
@@ -406,18 +406,9 @@ void DG_DrawFrame()
       default:
         break;
     }
-
-    /*
-    printf("active menu: %s\n", "asd");
-    printf(" %d entries\n", DG_MenuItemsCount);
-
-    for(int i = 0; i < DG_MenuItemsCount; i++)
-    {
-      printf(" * %s : %d\t[%d]\n", DG_MenuEntriesNames[i], DG_MenuEntriesStati[i, i == DG_MenuItemOn]);
-    }
-    */
   }
 
+  //some menus use whole tt_page. if such a menu is currently displayed, do not use the rendering area in current frame
   if(!page_finished)
   {
     TT_InsertGameRendering(tt_page, tt_rendering);
@@ -475,4 +466,7 @@ void DG_Close()
 
   //wait a bit, so that packet will be received before TCP socket is closed
   usleep(200000);
+
+  //close TCP socket
+  TCPSocketClose();
 }
