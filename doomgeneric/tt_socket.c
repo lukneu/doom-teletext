@@ -71,3 +71,8 @@ void TCPSocketSendTTPage(uint8_t page[TT_ROWS][TT_COLUMNS])
         send(client_fd, page[i], TT_COLUMNS, 0);
     }
 }
+
+void TCPSocketSendSingleTTLine(uint8_t line[TT_COLUMNS])
+{
+    send(client_fd, line, TT_COLUMNS, 0);
+}

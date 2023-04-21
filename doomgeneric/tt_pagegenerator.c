@@ -12,6 +12,8 @@
 #define PAGE_TENS 0
 #define PAGE_UNITS 0
 
+#define HEADER_CONTENT { TTEXT_ALPHA_CYAN, 'g', 'i', 't', 'h', 'u', 'b', '.', 'c', 'o', 'm', '/', 'l', 'u', 'k', 'n', 'e', 'u', '/', 'd', 'o', 'o', 'm', '-', 't', 'e', 'l', 'e', 't', 'e', 'x', 't' }
+
 //target array is of size 24*42, but first two columns of array is not to be manipulated because it holds MPAG bytes
 //source array does not have to have correct parity bit, parity bit is set by this function
 void InsertIntoPage(uint8_t target[TT_ROWS][TT_COLUMNS], int startRow, int startColumn, int height, int width, uint8_t source[height][width])
@@ -51,8 +53,49 @@ void InsertIntoRendering(uint8_t target[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLU
     }
 }
 
+void TT_GetTimeFillingHeaderPacket(uint8_t header[TT_COLUMNS])
+{
+    //https://www.etsi.org/deliver/etsi_i_ets/300700_300799/300706/01_60/ets_300706e01p.pdf
+    /*
+    Quote from PDF linked above:
+
+    If a magazine has only one displayable page (and in some other circumstances), it may be necessary to
+    indicate the completion of the transmission of that page by closing it with another page header packet.
+    Headers with pages addresses in the range XFF:0000 to XFF:3F7E are defined for use for this purpose.
+    These headers may be referred to as "Time Filling Headers", when they are used to keep the real-time
+    clock field updated in a magazine in parallel transmission mode.
+    */
+
+    uint8_t mpag_bytes[2];
+    EncodeMpag(PAGE_MAG, 0, mpag_bytes); //mag 1, row 0
+
+    header[0] = mpag_bytes[0];
+    header[1] = mpag_bytes[1];
+    header[2] = Hamming84(0xF); //page number units
+    header[3] = Hamming84(0xF); //page number tens
+    header[4] = Hamming84(0x0); //subpage s1
+    header[5] = Hamming84(0x0); //subpage s2
+    header[6] = Hamming84(0x0); //subpage s3
+    header[7] = Hamming84(0x0); //subpage s4
+    header[8] = Hamming84(0x1); //control bits c7-c10   (c7 set = suppress header)
+    header[9] = Hamming84(0x0); //control bits c11-c14
+
+    //even with 'suppress header' set, some decoders seem to display the last 8 bytes
+    //prevent flickering by writing the same content in header
+    uint8_t headerContentBytes[32] = HEADER_CONTENT;
+
+    for (int i = 0; i < 32; i++)
+    {
+        header[10 + i] = headerContentBytes[i];
+    }
+}
+
 void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
+    //TT page specification:
+    //https://www.etsi.org/deliver/etsi_i_ets/300700_300799/300706/01_60/ets_300706e01p.pdf
+    //chapter 9.3.1
+
     for (uint8_t i = 0; i < TT_ROWS; i++)
     {
         for (uint8_t j = 0; j < TT_COLUMNS; j++)
@@ -79,12 +122,23 @@ void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
     page[0][0] = mpag_bytes[0];
     page[0][1] = mpag_bytes[1];
 
-    //https://github.com/losso3000/420-years-of-teletext/blob/main/notes/packet-format.md
+    uint8_t headerConfigBytes[1][8] =
+    {
+        {
+            Hamming84(PAGE_UNITS),
+            Hamming84(PAGE_TENS),
+            Hamming84(0x0), //subpage s1
+            Hamming84(0x0), //subpage s2
+            Hamming84(0x0), //subpage s3
+            Hamming84(0x0), //subpage s4
+            Hamming84(0x0), //control bits c7-c10
+            Hamming84(0x0)  //control bits c11-c14
+        }
+    };
 
-    uint8_t headerConfigBytes[1][8] = { { Hamming84(PAGE_UNITS), Hamming84(PAGE_TENS), 0x15, 0x15, 0x15, 0x15, 0x15, 0x15 } };
     InsertIntoPage(page, 0, 0, 1, 8, headerConfigBytes);
-   
-    uint8_t headerContextBytes[1][32] = { { TTEXT_ALPHA_CYAN, 'g', 'i', 't', 'h', 'u', 'b', '.', 'c', 'o', 'm', '/', 'l', 'u', 'k', 'n', 'e', 'u', '/', 'd', 'o', 'o', 'm', '-', 't', 'e', 'l', 'e', 't', 'e', 'x', 't' } };
+
+    uint8_t headerContextBytes[1][32] = { HEADER_CONTENT };
     InsertIntoPage(page, 0, 8, 1, 32, headerContextBytes);
 
     //set mpag bytes for each row
@@ -94,7 +148,6 @@ void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
         page[row][0] = mpag_bytes[0];
         page[row][1] = mpag_bytes[1];
     }
-
 }
 
 void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS])
@@ -146,8 +199,8 @@ void WriteThreeDigitNumber(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COL
     uint8_t digit_2 = (value % 100) / 10;
     uint8_t digit_3 = value % 10;
 
-    InsertIntoStatusbar(statusbar, start_row, start_col, 2, 2, sprite_char_array[digit_1]);
-    InsertIntoStatusbar(statusbar, start_row, start_col + 2, 2, 2, sprite_char_array[digit_2]);
+    InsertIntoStatusbar(statusbar, start_row, start_col, 2, 2, value >= 100 ? sprite_char_array[digit_1] : sprite_2_2_empty);
+    InsertIntoStatusbar(statusbar, start_row, start_col + 2, 2, 2, value >= 10 ? sprite_char_array[digit_2] : sprite_2_2_empty);
     InsertIntoStatusbar(statusbar, start_row, start_col + 4, 2, 2, sprite_char_array[digit_3]);
 }
 
@@ -365,13 +418,13 @@ void TT_RenderInMosaicBlackWhite(uint32_t* DG_ScreenBuffer,
 void TT_InsertStatusbar(uint8_t page[TT_ROWS][TT_COLUMNS],
                         uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS])
 {
-    InsertIntoPage(page, 21, 0, TT_STATUSBAR_ROWS, TT_STATUSBAR_COLUMNS, statusbar);
+    InsertIntoPage(page, 20, 0, TT_STATUSBAR_ROWS, TT_STATUSBAR_COLUMNS, statusbar);
 }
 
 void TT_InsertGameRendering(uint8_t page[TT_ROWS][TT_COLUMNS],
                             uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS])
 {
-    InsertIntoPage(page, 4, 0, TT_FRAMEBUFFER_ROWS, TT_FRAMEBUFFER_COLUMNS, rendering);
+    InsertIntoPage(page, 3, 0, TT_FRAMEBUFFER_ROWS, TT_FRAMEBUFFER_COLUMNS, rendering);
 }
 
 void EncodeString(char* sourceString, uint8_t* targetArray, bool make_uppercase)
@@ -876,15 +929,15 @@ void TT_OverlaySoundOptionsMenu(uint8_t rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEB
 
 void TT_OverlayReadThis1(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
-    InsertIntoPage(page, 2, 0, 23, 40, sprite_readme_1);
+    InsertIntoPage(page, 1, 0, 23, 40, sprite_readme_1);
 }
 
 void TT_OverlayReadThis2(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
-    InsertIntoPage(page, 1, 0, 24, 40, sprite_readme_2);
+    InsertIntoPage(page, 1, 0, 23, 40, sprite_readme_2);
 }
 
 void TT_OverlayQuitScreen(uint8_t page[TT_ROWS][TT_COLUMNS])
 {
-    InsertIntoPage(page, 1, 0, 24, 40, sprite_end);
+    InsertIntoPage(page, 1, 0, 23, 40, sprite_end);
 }

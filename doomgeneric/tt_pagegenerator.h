@@ -1,7 +1,7 @@
 #ifndef TT_PAGEGENERATOR_H
 #define TT_PAGEGENERATOR_H
 
-#define TT_ROWS 25
+#define TT_ROWS 24
 #define TT_COLUMNS 42
 
 #define TT_FRAMEBUFFER_ROWS 17 //rows needed to display actual game frame
@@ -13,6 +13,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
+void TT_GetTimeFillingHeaderPacket(uint8_t header[TT_COLUMNS]);
 
 void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS]);
 

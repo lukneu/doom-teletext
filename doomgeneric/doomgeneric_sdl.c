@@ -25,6 +25,8 @@ enum GraphicMode {MOSAIC_SEPARATED,
 
 enum GraphicMode graphicMode = 0;
 
+uint8_t tt_time_filling_header[TT_COLUMNS]; //holds header for page 1FF (for indicating completion of transmission of page 100)
+
 uint8_t tt_page[TT_ROWS][TT_COLUMNS]; //holds whole teletext page (incl mpag bytes)
 uint8_t tt_statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]; //holds statusbar
 uint8_t tt_rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]; //holds part of tt page that displays the framebuffer
@@ -242,6 +244,9 @@ void DG_Init(){
   //init tt page
   TT_InitPage(tt_page);
   TT_InitStatusbar(tt_statusbar);
+
+  //time filling header
+  TT_GetTimeFillingHeaderPacket(tt_time_filling_header);
 }
 
 void DG_DrawFrame()
@@ -252,7 +257,6 @@ void DG_DrawFrame()
   //clear lines that are not edited in any frame
   TT_ClearLine(tt_page, 1);
   TT_ClearLine(tt_page, 2);
-  TT_ClearLine(tt_page, 3);
   
   switch (frames_display_config)
   {
@@ -340,7 +344,7 @@ void DG_DrawFrame()
 
   if(DG_HintMessageActive)
   {
-    TT_WriteHintMessage(tt_page, 3, DG_HintMessage);
+    TT_WriteHintMessage(tt_page, 2, DG_HintMessage);
   }
 
   if(DG_MenuMessageActive)
@@ -402,8 +406,9 @@ void DG_DrawFrame()
     TT_InsertGameRendering(tt_page, tt_rendering);
   }
 
-  //send tcp packet
+  //send tcp packets
   TCPSocketSendTTPage(tt_page);
+  TCPSocketSendSingleTTLine(tt_time_filling_header);
 
   usleep(1000000 / fps);
 }
@@ -446,7 +451,11 @@ void DG_SetWindowTitle(const char * title)
 
 void DG_Close()
 {
-  //send final tcp packet
+  //send final tcp packets
   TT_OverlayQuitScreen(tt_page);
   TCPSocketSendTTPage(tt_page);
+  TCPSocketSendSingleTTLine(tt_time_filling_header);
+
+  //wait a bit, so that packet will be received before TCP socket is closed
+  usleep(200000);
 }
