@@ -36,6 +36,7 @@ uint8_t tt_rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]; //holds part 
 uint current_frame = 0;
 uint8_t fps = FPS_START;
 uint8_t frames_display_config = 0;
+bool send_filling_headers = true;
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -195,6 +196,68 @@ static void handleKeyInput(){
   }
 }
 
+void handleCommandLineArguments()
+{
+  //default tcp parameters
+  char* tcp_server_ip = "127.0.0.1";
+  int tcp_server_port = 8080;
+
+  //check if user provided target ip
+  int tt_ip_param = M_CheckParmWithArgs("-tt_stream_ip", 1);
+  if (tt_ip_param > 0)
+  {
+    tcp_server_ip = myargv[tt_ip_param + 1];
+  }
+  else
+  {
+    printf("Argument '-tt_stream_ip' was not provided. Using '%s'.\n", tcp_server_ip);
+  }
+
+  //check if user provided target port
+  int tt_port_param = M_CheckParmWithArgs("-tt_stream_port", 1);
+  if (tt_port_param > 0)
+  {
+    tcp_server_port = atoi(myargv[tt_port_param + 1]);
+  }
+  else
+  {
+    printf("Argument '-tt_stream_port' was not provided. Using '%d'.\n", tcp_server_port);
+  }
+
+  //check if user provided target FPS value
+  int tt_fps_param = M_CheckParmWithArgs("-tt_target_fps", 1);
+  if (tt_fps_param > 0)
+  {
+    int fps_value = atoi(myargv[tt_fps_param + 1]);
+
+    if(fps_value >= FPS_MIN && fps_value <= FPS_MAX)
+    {
+      fps = fps_value;
+    }
+
+    printf("Sending %d teletext pages per second. Try using a lower value if it lags on your TV.\n", fps);
+  }
+  else
+  {
+    printf("Argument '-tt_target_fps' was not provided. Using '%d'.\n", fps);
+  }
+
+  //check if user wants to skip time filling headers
+  if (M_CheckParm("-tt_skip_filling_headers") > 0)
+  {
+    send_filling_headers = false;
+    printf("Time filling headers are not sent (because 'tt_skip_filling_headers' was provided as argument).\n");
+  }
+  else
+  {
+    send_filling_headers = true;
+    printf("Argument '-tt_skip_filling_headers' was not provided, headers are sent. (Using this argument might allow more fps!)\n");
+  }
+  
+  //create tcp client
+  TCPSocketCreate(tcp_server_ip, tcp_server_port);
+}
+
 void DG_Init(){
   window = SDL_CreateWindow("DOOM",
                             SDL_WINDOWPOS_UNDEFINED,
@@ -213,52 +276,7 @@ void DG_Init(){
 
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, DOOMGENERIC_RESX, DOOMGENERIC_RESY);
 
-  //default tcp parameters
-  char* tcp_server_ip = "127.0.0.1";
-  int tcp_server_port = 8080;
-
-  //check if user provided target ip
-  int tt_ip_param = M_CheckParmWithArgs("-tt_stream_ip", 1);
-  if (tt_ip_param > 0)
-  {
-    tcp_server_ip = myargv[tt_ip_param + 1];
-  }
-  else
-  {
-    printf("Argument '-tt_stream_ip' was not provided. Using %s\n", tcp_server_ip);
-  }
-
-  //check if user provided target port
-  int tt_port_param = M_CheckParmWithArgs("-tt_stream_port", 1);
-  if (tt_port_param > 0)
-  {
-    tcp_server_port = atoi(myargv[tt_port_param + 1]);
-  }
-  else
-  {
-    printf("Argument '-tt_stream_port' was not provided. Using %d\n", tcp_server_port);
-  }
-
-  //check if user provided target FPS value
-  int tt_fps_param = M_CheckParmWithArgs("-tt_target_fps", 1);
-  if (tt_fps_param > 0)
-  {
-    int fps_value = atoi(myargv[tt_fps_param + 1]);
-
-    if(fps_value >= FPS_MIN && fps_value <= FPS_MAX)
-    {
-      fps = fps_value;
-    }
-
-    printf("Sending %d teletext pages per second. Try using a lower value if it lags on your TV.\n", fps);
-  }
-  else
-  {
-    printf("Argument '-tt_target_fps' was not provided. Using %d\n", fps);
-  }
-  
-  //create tcp client
-  TCPSocketCreate(tcp_server_ip, tcp_server_port);
+  handleCommandLineArguments();
 
   //init tt page
   TT_InitPage(tt_page);
@@ -418,7 +436,11 @@ void DG_DrawFrame()
 
   //send tcp packets
   TCPSocketSendTTPage(tt_page);
-  TCPSocketSendSingleTTLine(tt_time_filling_header);
+
+  if(send_filling_headers)
+  {
+    TCPSocketSendSingleTTLine(tt_time_filling_header);
+  }
 
   usleep(1000000 / fps);
 }
@@ -464,7 +486,11 @@ void DG_Close()
   //send final tcp packets
   TT_OverlayQuitScreen(tt_page);
   TCPSocketSendTTPage(tt_page);
-  TCPSocketSendSingleTTLine(tt_time_filling_header);
+
+  if(send_filling_headers)
+  {
+    TCPSocketSendSingleTTLine(tt_time_filling_header);
+  }
 
   //wait a bit, so that packet will be received before TCP socket is closed
   usleep(200000);
