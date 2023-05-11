@@ -33,10 +33,11 @@ uint8_t tt_page[TT_ROWS][TT_COLUMNS]; //holds whole teletext page (incl mpag byt
 uint8_t tt_statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]; //holds statusbar
 uint8_t tt_rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]; //holds part of tt page that displays the framebuffer
 
-uint current_frame = 0;
 uint8_t fps = FPS_START;
 uint8_t frames_display_config = 0;
 bool send_filling_headers = true;
+uint page_export_count = 0;
+bool savePageToFile = false;
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -182,6 +183,10 @@ static void handleKeyInput(){
 
         frames_display_config = fps * DISPLAY_SECONDS;
       }
+      else if (strcmp(e.text.text, "#") == 0)
+      {
+        savePageToFile = true;
+      }
     }
 
     if (e.type == SDL_KEYDOWN) {
@@ -194,6 +199,43 @@ static void handleKeyInput(){
       addKeyToQueue(0, e.key.keysym.sym);
     }
   }
+}
+
+/// Method used for debugging / documenting
+/// Saves the current page as 25*40 binary file
+void saveTeletextPage()
+{
+  //save teletext 'screenshot'
+  uint8_t tt_exp[25][40];
+
+  for(int i = 0; i < 24; i++)
+  {
+    for(int j = 0; j < 40; j++)
+    {
+      tt_exp[i][j] = tt_page[i][j + 2];
+    }
+  }
+  
+  for(int j = 0; j < 40; j++)
+  {
+    tt_exp[24][j] = 0x20;
+  }
+
+  FILE *write_ptr;
+
+  char tt_file_name[14] = "tt/tt_000.bin\0";
+  tt_file_name[6] = '0' + (page_export_count / 100);
+  tt_file_name[7] = '0' + (page_export_count % 100) / 10;
+  tt_file_name[8] = '0' + page_export_count % 10;
+
+  write_ptr = fopen(tt_file_name, "wb");  // wb = write binary
+
+  size_t t = fwrite(tt_exp, 1, 25*40, write_ptr);
+  printf("wrote: %d bytes to %s\n", t, tt_file_name);
+
+  fclose(write_ptr);
+
+  page_export_count++;
 }
 
 void handleCommandLineArguments()
@@ -289,7 +331,6 @@ void DG_Init(){
 void DG_DrawFrame()
 {
   bool page_finished = false;
-  current_frame++;
 
   //clear lines that are not edited in any frame
   TT_ClearLine(tt_page, 1);
@@ -432,6 +473,12 @@ void DG_DrawFrame()
   if(!page_finished)
   {
     TT_InsertGameRendering(tt_page, tt_rendering);
+  }
+
+  if(savePageToFile)
+  {
+    saveTeletextPage();
+    savePageToFile = false;
   }
 
   //send tcp packets
