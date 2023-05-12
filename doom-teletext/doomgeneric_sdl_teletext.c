@@ -37,6 +37,7 @@ uint8_t tt_rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]; //holds part 
 uint8_t fps = FPS_START;
 uint8_t frames_display_config = 0;
 bool send_filling_headers = true;
+bool permanent_debug_info = false;
 bool show_subtitle_intro = false;
 uint page_export_count = 0;
 bool savePageToFile = false;
@@ -242,6 +243,8 @@ void saveTeletextPage()
 
 void handleCommandLineArguments()
 {
+  printf("\n");
+
   //default tcp parameters
   char* tcp_server_ip = "127.0.0.1";
   int tcp_server_port = 8080;
@@ -297,6 +300,18 @@ void handleCommandLineArguments()
     send_filling_headers = true;
     printf("Argument '-tt_skip_filling_headers' was not provided, headers are sent. (Using this argument might allow more fps!)\n");
   }
+
+  //check if debug info should be shown permanently
+  if (M_CheckParm("-tt_permanent_debug_info") > 0)
+  {
+    permanent_debug_info = true;
+    printf("Debug info (graphics mode + fps) are shown permanently.\n");
+  }
+  else
+  {
+    permanent_debug_info = false;
+    printf("Argument '-tt_permanent_debug_info' was not provided. Debug info (graphics mode + fps) is only shown at change.\n");
+  }
   
   //check if user wants to show start info as subtitle page
   if (M_CheckParm("-tt_show_subtitle_intro") > 0)
@@ -312,6 +327,8 @@ void handleCommandLineArguments()
 
   //create tcp client
   TCPSocketCreate(tcp_server_ip, tcp_server_port);
+
+  printf("\n");
 }
 
 void DG_Init(){
@@ -366,17 +383,24 @@ void DG_DrawFrame()
   TT_ClearLine(tt_page, 1);
   TT_ClearLine(tt_page, 2);
   
-  switch (frames_display_config)
+  if (permanent_debug_info)
   {
-    case 0:
-      break;
-    case 1:
-      frames_display_config--;
-      break;
-    default:
-      TT_ShowDebugInfo(tt_page, fps, graphicMode);
-      frames_display_config--;
-      break;
+    TT_ShowDebugInfo(tt_page, fps, graphicMode);  
+  }
+  else
+  {
+    switch (frames_display_config)
+    {
+      case 0:
+        break;
+      case 1:
+        frames_display_config--;
+        break;
+      default:
+        TT_ShowDebugInfo(tt_page, fps, graphicMode);
+        frames_display_config--;
+        break;
+    }
   }
 
   SDL_UpdateTexture(texture, NULL, DG_ScreenBuffer, DOOMGENERIC_RESX*sizeof(uint32_t));

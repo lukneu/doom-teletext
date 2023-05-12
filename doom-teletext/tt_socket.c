@@ -50,7 +50,7 @@ void TCPSocketCreate(char* targetIP, int targetPort)
         exit(EXIT_FAILURE);
     }
 
-    printf("\nTeletext signal is sent via TCP to %s:%d\n\n", ip, port);
+    printf("Teletext signal is sent via TCP to %s:%d\n", ip, port);
 }
 
 void TCPSocketClose()
