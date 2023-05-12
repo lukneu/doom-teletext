@@ -75,6 +75,7 @@ static unsigned char convertToDoomKey(unsigned int key){
       break;
     case SDLK_LCTRL:
     case SDLK_RCTRL:
+    case SDLK_F12: //F12 is used additionally because FLIRC can net be mapped to CTRL (?)
       key = KEY_FIRE;
       break;
     case SDLK_SPACE:
