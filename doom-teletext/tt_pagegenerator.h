@@ -18,6 +18,8 @@ void TT_GetTimeFillingHeaderPacket(uint8_t header[TT_COLUMNS]);
 
 void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS]);
 
+void TT_InitSubtitlePage(uint8_t page[TT_ROWS][TT_COLUMNS]);
+
 void TT_InitStatusbar(uint8_t statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]);
 
 //write/hide info

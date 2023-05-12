@@ -13,6 +13,7 @@
 #define PAGE_UNITS 0
 
 #define HEADER_CONTENT { TTEXT_ALPHA_CYAN, 'g', 'i', 't', 'h', 'u', 'b', '.', 'c', 'o', 'm', '/', 'l', 'u', 'k', 'n', 'e', 'u', '/', 'd', 'o', 'o', 'm', '-', 't', 'e', 'l', 'e', 't', 'e', 'x', 't' }
+#define SUBTITLE_CONTENT { ' ', ' ', TTEXT_START_BOX, TTEXT_START_BOX, ' ', 'F', 'i', 'g', 'h', 't', ' ', 'd', 'e', 'm', 'o', 'n', 's', ' ', 'i', 'n', ' ', 'T', 'e', 'l', 'e', 't', 'e', 'x', 't', ' ', 'i', 'n', ' ', 'X', ' ', TTEXT_END_BOX, TTEXT_END_BOX, ' ', ' ' }
 
 //target array is of size 24*42, but first two columns of array is not to be manipulated because it holds MPAG bytes
 //source array does not have to have correct parity bit, parity bit is set by this function
@@ -89,6 +90,18 @@ void TT_GetTimeFillingHeaderPacket(uint8_t header[TT_COLUMNS])
     {
         header[10 + i] = headerContentBytes[i];
     }
+}
+
+//fills given page with a valid header and valid mpag bytes, and marks page as subtitle page
+//page contains info about start of doom in subtitle (row 20 of page)
+void TT_InitSubtitlePage(uint8_t page[TT_ROWS][TT_COLUMNS])
+{
+    //Subtitle page is just like normal page, but with control bit C6 set in header. (see specs)
+    TT_InitPage(page);
+    page[0][7] = Hamming84(0x8);
+
+    uint8_t contextBytes[1][39] = { SUBTITLE_CONTENT };
+    InsertIntoPage(page, 20, 0, 1, 39, contextBytes);
 }
 
 //fills given page with a valid header and valid mpag bytes,

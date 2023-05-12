@@ -50,6 +50,9 @@
 #define TTEXT_HOLD_GRAPHICS 0x9E
 #define TTEXT_RELEASE_GRAPHICS 0x9F
 
+#define TTEXT_START_BOX 0x0B
+#define TTEXT_END_BOX 0x0A
+
 uint8_t GetTeletextEncodingMosaic(bool pixelTopLeft,
                                   bool pixelTopRight,
                                   bool pixelCenterLeft,

@@ -30,12 +30,14 @@ enum GraphicMode graphicMode = 0;
 uint8_t tt_time_filling_header[TT_COLUMNS]; //holds header for page 1FF (for indicating completion of transmission of page 100)
 
 uint8_t tt_page[TT_ROWS][TT_COLUMNS]; //holds whole teletext page (incl mpag bytes)
+
 uint8_t tt_statusbar[TT_STATUSBAR_ROWS][TT_STATUSBAR_COLUMNS]; //holds statusbar
 uint8_t tt_rendering[TT_FRAMEBUFFER_ROWS][TT_FRAMEBUFFER_COLUMNS]; //holds part of tt page that displays the framebuffer
 
 uint8_t fps = FPS_START;
 uint8_t frames_display_config = 0;
 bool send_filling_headers = true;
+bool show_subtitle_intro = false;
 uint page_export_count = 0;
 bool savePageToFile = false;
 
@@ -296,6 +298,18 @@ void handleCommandLineArguments()
     printf("Argument '-tt_skip_filling_headers' was not provided, headers are sent. (Using this argument might allow more fps!)\n");
   }
   
+  //check if user wants to show start info as subtitle page
+  if (M_CheckParm("-tt_show_subtitle_intro") > 0)
+  {
+    show_subtitle_intro = true;
+    printf("Argument '--show_subtitle_intro' was provided, game is started on subtitle page.\n");
+  }
+  else
+  {
+    show_subtitle_intro = false;
+    printf("Argument '-tt_show_subtitle_intro' was not provided, game is started on non-subtitle page.\n");
+  }
+
   //create tcp client
   TCPSocketCreate(tcp_server_ip, tcp_server_port);
 }
@@ -319,6 +333,22 @@ void DG_Init(){
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, DOOMGENERIC_RESX, DOOMGENERIC_RESY);
 
   handleCommandLineArguments();
+
+  if (show_subtitle_intro)
+  {
+    //init tt page for subtitle
+    uint8_t tt_page_subtitle[TT_ROWS][TT_COLUMNS];
+    TT_InitSubtitlePage(tt_page_subtitle);
+
+    for (int i = 5; i > 0; i--)
+    {
+      tt_page_subtitle[20][35] = Parity('0' + i);
+
+      TCPSocketSendTTPage(tt_page_subtitle);
+
+      usleep(1000000);
+    }
+  }
 
   //init tt page
   TT_InitPage(tt_page);
