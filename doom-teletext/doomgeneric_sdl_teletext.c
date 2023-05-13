@@ -16,7 +16,7 @@
 #include <stdbool.h>
 #include <SDL.h>
 
-#define FPS_START 6
+#define FPS_START 3
 #define FPS_MAX 35
 #define FPS_MIN 1
 #define DISPLAY_SECONDS 4
@@ -374,6 +374,9 @@ void DG_Init(){
 
   //get time filling header for later use
   TT_GetTimeFillingHeaderPacket(tt_time_filling_header);
+
+  //show debug info for first 5 seconds
+  frames_display_config = 5 * fps;
 }
 
 void DG_DrawFrame()
