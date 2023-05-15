@@ -239,7 +239,7 @@ void saveTeletextPage()
   write_ptr = fopen(tt_file_name, "wb");  // wb = write binary
 
   size_t t = fwrite(tt_exp, 1, 25*40, write_ptr);
-  printf("wrote: %d bytes to %s\n", t, tt_file_name);
+  printf("wrote: %zd bytes to %s\n", t, tt_file_name);
 
   fclose(write_ptr);
 
@@ -364,7 +364,7 @@ void DG_Init(){
 
     for (int i = 5; i > 0; i--)
     {
-      tt_page_subtitle[20][35] = Parity('0' + i);
+      TT_SetCounterInSubtitlePage(tt_page_subtitle, i);
 
       TCPSocketSendTTPage(tt_page_subtitle);
 

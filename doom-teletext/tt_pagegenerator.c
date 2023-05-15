@@ -104,6 +104,17 @@ void TT_InitSubtitlePage(uint8_t page[TT_ROWS][TT_COLUMNS])
     InsertIntoPage(page, 20, 0, 1, 39, contextBytes);
 }
 
+//updates the counter value in the intro subtitle page
+void TT_SetCounterInSubtitlePage(uint8_t page[TT_ROWS][TT_COLUMNS], uint8_t counter)
+{
+    if (counter > 9)
+    {
+        counter = 9;
+    }
+
+    page[20][35] = Parity('0' + counter);
+}
+
 //fills given page with a valid header and valid mpag bytes,
 //so that page can be filled with displayable data afterwards
 void TT_InitPage(uint8_t page[TT_ROWS][TT_COLUMNS])
