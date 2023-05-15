@@ -545,8 +545,7 @@ void DG_DrawFrame()
     save_page_to_file = false;
   }
 
-  clock_t now = clock();
-  double cpu_time_used = ((double) (now - last_packet_sent_clock));
+  double cpu_time_used = ((double) (clock() - last_packet_sent_clock));
 
   double sleep_time = (1000000 / fps) - cpu_time_used; //in microseconds
   if(sleep_time < 0)
