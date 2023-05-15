@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <time.h>
+
 #include <stdbool.h>
 #include <SDL.h>
 
@@ -40,7 +42,9 @@ bool send_filling_headers = true;
 bool permanent_debug_info = false;
 bool show_subtitle_intro = false;
 uint page_export_count = 0;
-bool savePageToFile = false;
+bool save_page_to_file = false;
+
+clock_t last_packet_sent_clock;
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -189,7 +193,7 @@ static void handleKeyInput(){
       }
       else if (strcmp(e.text.text, "#") == 0)
       {
-        savePageToFile = true;
+        save_page_to_file = true;
       }
     }
 
@@ -377,6 +381,8 @@ void DG_Init(){
 
   //show debug info for first 5 seconds
   frames_display_config = 5 * fps;
+
+  last_packet_sent_clock = clock();
 }
 
 void DG_DrawFrame()
@@ -533,11 +539,22 @@ void DG_DrawFrame()
     TT_InsertGameRendering(tt_page, tt_rendering);
   }
 
-  if(savePageToFile)
+  if(save_page_to_file)
   {
     saveTeletextPage();
-    savePageToFile = false;
+    save_page_to_file = false;
   }
+
+  clock_t now = clock();
+  double cpu_time_used = ((double) (now - last_packet_sent_clock));
+
+  double sleep_time = (1000000 / fps) - cpu_time_used; //in microseconds
+  if(sleep_time < 0)
+  {
+    sleep_time = 0;
+  }
+
+  usleep(sleep_time);
 
   //send tcp packets
   TCPSocketSendTTPage(tt_page);
@@ -547,7 +564,7 @@ void DG_DrawFrame()
     TCPSocketSendSingleTTLine(tt_time_filling_header);
   }
 
-  usleep(1000000 / fps);
+  last_packet_sent_clock = clock();
 }
 
 void DG_SleepMs(uint32_t ms)
