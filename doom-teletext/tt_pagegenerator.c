@@ -607,7 +607,7 @@ int GetMenuEntryText(char* sourceString, uint8_t* targetArray, int showMessagesV
     }
     else if (strcmp(sourceString, "M_MSENS") == 0)
     {
-        strcpy(actualString, "MOUSE-SENSITIVITY");
+        strcpy(actualString, "MOUSE SENSITIVITY");
         EncodeString(actualString, targetArray, false);
     }
     else if (strcmp(sourceString, "M_SVOL") == 0)
