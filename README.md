@@ -120,15 +120,15 @@ You can change some settings by providing additional command line arguments:
 
 #### Command Line Arguments
 
-| Argument                    | Description                                                                                                  | Default Value                                                            |
-|-----------------------------|--------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
-| `-iwad PATH`                | *(Required)* Path to WAD file                                                                                |                                                                          |
-| `-tt_stream_ip VALUE`       | IP to send teletext packets to                                                                               | 127.0.0.1                                                                |
-| `-tt_stream_port VALUE`     | PORT to send teletext packets to                                                                             | 8080                                                                     |
-| `-tt_target_fps VALUE`      | Initial value for teletext page refreshes per second<br>(value can be adjusted while running)                | 3<br>(because many modern TVs cannot handle high teletext refresh rate)  |
-| `-tt_skip_filling_headers`  | Do not send header for page 1FF after each frame<br>(might allow for higher FPS value, depending on your TV) |                                                                          |
-| `-tt_permanent_debug_info`  | Always display debug info (graphics mode & FPS) on teletext page                                             |                                                                          |
-| `-tt_show_subtitle_intro`   | Shows starting message for 5 seconds in subtitle mode, before running the actual game                        |                                                                          |
+| Argument                   | Description                                                                                                   | Default Value                                                           |
+|----------------------------|---------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| `-iwad PATH`               | *(Required)* Path to WAD file                                                                                 |                                                                         |
+| `-tt_stream_ip VALUE`      | IP to send teletext packets to                                                                                | 127.0.0.1                                                               |
+| `-tt_stream_port VALUE`    | PORT to send teletext packets to                                                                              | 8080                                                                    |
+| `-tt_target_fps VALUE`     | Initial value [in range 1-35] for teletext page refreshes per second<br>(value can be adjusted while running) | 3<br>(because many modern TVs cannot handle high teletext refresh rate) |
+| `-tt_skip_filling_headers` | Do not send header for page 1FF after each frame<br>(might allow for higher FPS value, depending on your TV)  |                                                                         |
+| `-tt_permanent_debug_info` | Always display debug info (graphics mode & FPS) on teletext page                                              |                                                                         |
+| `-tt_show_subtitle_intro`  | Shows starting message for 5 seconds in subtitle mode, before running the actual game                         |                                                                         |
 
 #### Extra: Playing With Actual TV Remote 
 FLIRC allows binding infrared commands to key presses, so you can record button pushes and use your remote control instead of a keyboard for key inputs, and therefore to play doom-teletext. 
