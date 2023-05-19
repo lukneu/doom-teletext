@@ -4,17 +4,11 @@
 
 doom-teletext generates a teletext stream that contains rendering of the famous first-person shooter game DOOM from 1993. The generated data can be piped to applications that process teletext packet streams, either to send it to real TVs or to decode and display teletext pages on a computer.
 
-**VIDEO PLACEHOLDER**
-
-<!--
-<a href="http://www.youtube.com/watch?feature=player_embedded&v=YOUTUBE_VIDEO_ID_HERE
-" target="_blank"><img src="http://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg" 
-alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
--->
+[!['DOOM in Teletext' on YouTube.](screenshots/doom-teletext_youtube_screenshot.jpg)](https://www.youtube.com/watch?v=rIgQV4ClmQ0)
 
 **Tele...what?** Teletext is a standard for displaying (simple mosaic) graphics and text on TVs. The data to display is contained in the broadcast signal, hidden in the invisible vertical blanking interval area. Teletext was broadcasted for the first time  in 1974 and [still is](https://en.m.wikipedia.org/wiki/List_of_teletext_services) in many countries, mainly in Europe. A teletext page consists of 25 rows that can hold 40 characters each, while some characters are not displayable but hold information like text color of subsequent characters of the same line. If you want to learn more about this technology, the [Wikipedia page](https://en.wikipedia.org/wiki/Teletext) is a good starting point, for detailed technical documentation this [teletext specifications](https://www.etsi.org/deliver/etsi_i_ets/300700_300799/300706/01_60/ets_300706e01p.pdf) document is the way to go.
 
-Since teletext is based on unidirectional data transmission, it is not possible to actually *run* DOOM in teletext. However, running the original game on some device that also generates a teletext page which holds the scene is just as fine. The packages sent by doom-teletext hold the teletext rendering of the current game frame, as well as a status bar that informs about the current state of the player. In detail, the status bar shows information like owned weapons, ammunition, health status, and a graphical representation of the player's face. Also the whole game menu was rebuilt for rendering in teletext.
+Since teletext is based on unidirectional data transmission, it is not possible to actually *run* DOOM in teletext. However, running the original game on some device that also generates a teletext page which holds the scene is just as fine. The packages sent by doom-teletext hold the teletext rendering of the current game frame, as well as a status bar that informs about the current state of the player. In detail, the status bar shows information like owned weapons, ammunition, health status, and a graphical representation of the protagonist's face. Also the whole game menu was rebuilt for rendering in teletext.
 
 There are different levels of teletext. Even though higher levels allow for higher resolution graphics and a larger color palette, this projects generates a stream of [level 1 teletext](https://en.wikipedia.org/wiki/World_System_Teletext#Levels), mainly because it just feels like 'real' teletext to me and I like the original blocky look.
 
@@ -36,6 +30,8 @@ Each teletext line can hold *40* characters. However, we cannot use all of them 
 
 ![Rendering graphics in teletext](screenshots/teletext_mosaic_overview.jpg)
 
+### Gameplay Rendering
+
 Characters in graphics mode can display sixels, which means that each cell is divided into *2\*3* regions, let's call them pixels, that can be empty or filled. 
 
 Therefore, we have *39 \* 2 = 78* pixels in width for displaying graphics in contiguous mode, and *38 \* 2 = 76* pixels in width for separated graphics mode.
@@ -46,19 +42,29 @@ Summarized, we can use *78 \* 4 = 312* pixels width of DOOM in contiguous graphi
 
 While the original rendering is cropped on the left and right sides, we can show the whole height in *17* lines as *200 / 4 = 50* and *50 / 3 = 16,67*.
 
-In total, the resolution of the rendering in teletext is *78 \* 50* in contiguous graphics mode and *76 \* 50* in separated graphics mode.
+In total, the resolution of the gameplay rendering in teletext is *78 \* 50* in contiguous graphics mode and *76 \* 50* in separated graphics mode.
+
+### Status Bar Rendering
+
+The status bar is displayed in *4* teletext rows and holds information about the player's ammunition, health status, owned weapons, armor value and owned keys. Furthermore, the status bar shows a pixelated version of the protagonist's face. Like in the original game rendering, the facial expression depends on the health status. Whenever the protagonist is in rampage mode, the face is displayed in red colors.
+
+For displaying ammunition, health status and armor values, the protagonist's face as well as the availability of key cars, teletext graphics mode was used. The other information of the status bar is displayed in text mode.
+
+### Menu & Messages Rendering
+
+If a menu or message is displayed by the game, doom-teletext renders the teletext page like described above, and then tries to overlay the menu or message in an easily readbale form. While it was the intention to display menus as close as possible to the original form for nearly all menu screens, the first *'Read This!'* screen was altered in order to show the newly introduced function keys and the second *'Read This!'* screen does not show all the information of the original version because of limited space in teletext.
 
 ![doom-teletext rendering modes](screenshots/doom-teletext_rendering_overview.jpg)
 
 ### Comparison of Original Rendering and Teletext Rendering
 
-| Original Rendering                                                     | Teletext Rendering                                                         |
-|------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| ![DOOM gameplay rendering original](screenshots/gameplay_original.jpg) | ![DOOM gameplay rendering in teletext](screenshots/gameplay_teletext.jpg)  |
-| ![DOOM menu original](screenshots/menu_options_original.jpg)           | ![DOOM menu in teletext](screenshots/menu_options_teletext.jpg)            |
-| ![DOOM read this menu original](screenshots/read_this_1_original.jpg)  | ![DOOM read this menu in teletext](screenshots/read_this_1_teletext.jpg)   |
-| ![DOOM read this menu original](screenshots/read_this_2_original.jpg)  | ![DOOM read this menu in teletext](screenshots/read_this_2_teletext.jpg)   |
-| ![DOOM quit message original](screenshots/quit_message_original.jpg)   | ![DOOM quit message in teletext](screenshots/quit_message_teletext.jpg)    |
+| Original Rendering                                                     | Teletext Rendering                                                        |
+|------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| ![DOOM gameplay rendering original](screenshots/gameplay_original.jpg) | ![DOOM gameplay rendering in teletext](screenshots/gameplay_teletext.jpg) |
+| ![DOOM menu original](screenshots/menu_options_original.jpg)           | ![DOOM menu in teletext](screenshots/menu_options_teletext.jpg)           |
+| ![DOOM read this menu original](screenshots/read_this_1_original.jpg)  | ![DOOM read this menu in teletext](screenshots/read_this_1_teletext.jpg)  |
+| ![DOOM read this menu original](screenshots/read_this_2_original.jpg)  | ![DOOM read this menu in teletext](screenshots/read_this_2_teletext.jpg)  |
+| ![DOOM quit message original](screenshots/quit_message_original.jpg)   | ![DOOM quit message in teletext](screenshots/quit_message_teletext.jpg)   |
 
 ## How to Run
 
@@ -131,6 +137,7 @@ You can change some settings by providing additional command line arguments:
 | `-tt_show_subtitle_intro`  | Shows starting message for 5 seconds in subtitle mode, before running the actual game                         |                                                                         |
 
 #### Extra: Playing With Actual TV Remote 
+
 FLIRC allows binding infrared commands to key presses, so you can record button pushes and use your remote control instead of a keyboard for key inputs, and therefore to play doom-teletext. 
 
 ## Related Projects
