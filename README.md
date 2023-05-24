@@ -60,8 +60,9 @@ If a menu or message is displayed by the game, doom-teletext renders the teletex
 
 | Original Rendering                                                     | Teletext Rendering                                                        |
 |------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| ![DOOM main menu original](screenshots/menu_main_original.jpg)         | ![DOOM main menu in teletext](screenshots/menu_main_teletext.jpg)         |
 | ![DOOM gameplay rendering original](screenshots/gameplay_original.jpg) | ![DOOM gameplay rendering in teletext](screenshots/gameplay_teletext.jpg) |
-| ![DOOM menu original](screenshots/menu_options_original.jpg)           | ![DOOM menu in teletext](screenshots/menu_options_teletext.jpg)           |
+| ![DOOM options menu original](screenshots/menu_options_original.jpg)   | ![DOOM options menu in teletext](screenshots/menu_options_teletext.jpg)   |
 | ![DOOM read this menu original](screenshots/read_this_1_original.jpg)  | ![DOOM read this menu in teletext](screenshots/read_this_1_teletext.jpg)  |
 | ![DOOM read this menu original](screenshots/read_this_2_original.jpg)  | ![DOOM read this menu in teletext](screenshots/read_this_2_teletext.jpg)  |
 | ![DOOM quit message original](screenshots/quit_message_original.jpg)   | ![DOOM quit message in teletext](screenshots/quit_message_teletext.jpg)   |
