@@ -4,7 +4,7 @@
 
 doom-teletext generates a teletext stream that contains rendering of the famous first-person shooter game DOOM from 1993. The generated data can be piped to applications that process teletext packet streams, either to send it to real TVs or to decode and display teletext pages on a computer.
 
-[!['DOOM in Teletext' on YouTube.](screenshots/doom-teletext_youtube_screenshot.jpg)](https://www.youtube.com/watch?v=rIgQV4ClmQ0)
+[!['DOOM in Teletext' on YouTube.](screenshots/doom-teletext_youtube_screenshot.jpg)](https://yewtu.be/watch?v=rIgQV4ClmQ0)
 
 **Tele...what?** Teletext is a standard for displaying (simple mosaic) graphics and text on TVs. The data to display is contained in the broadcast signal, hidden in the invisible vertical blanking interval area. Teletext was broadcast for the first time  in 1974 and [still is](https://en.m.wikipedia.org/wiki/List_of_teletext_services) in many countries, mainly in Europe. A teletext page consists of 25 rows that can hold 40 characters each, while some characters are not displayable but hold information like text color of subsequent characters of the same line. If you want to learn more about this technology, the [Wikipedia page](https://en.wikipedia.org/wiki/Teletext) is a good starting point, for detailed technical documentation this [teletext specifications](https://www.etsi.org/deliver/etsi_i_ets/300700_300799/300706/01_60/ets_300706e01p.pdf) document is the way to go.
 
